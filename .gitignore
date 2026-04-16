@@ -55,6 +55,9 @@ wheels/
 logs/
 *.log
 
+# Pipeline output (timestamped export directories)
+export_[0-9]*/
+
 # Temporary files
 tmp/
 *.tmp

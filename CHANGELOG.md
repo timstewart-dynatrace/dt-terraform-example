@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-16
+
+### Added
+- Export pipeline (`pipelines/export.py`) with Terraform and Monaco format generators
+- Deploy pipeline (`pipelines/deploy.py`) with auto-format detection
+- GitHub Actions workflows for export (`export.yml`) and deploy (`deploy.yml`) with `workflow_dispatch` inputs
+- Post-export reconciliation: compare exported items against tenant state
+- Post-export topology analysis: map entity cross-references and compute deployment order
+- Post-deploy results analysis: compare before/after tenant counts
+- Pipeline configuration via `config/pipeline.yaml` with `${ENV_VAR}` interpolation
+- Shared Dynatrace API client (`pipelines/core/dt_client.py`)
+- Format auto-detection for deploy pipeline (Terraform vs Monaco)
+- `tabulate` dependency for formatted report output
+
 ## [0.1.0] - 2026-04-16
 
 ### Added
