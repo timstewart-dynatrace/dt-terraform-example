@@ -85,8 +85,14 @@ Detailed phase management rules: @.claude/rules/core.md
 ### Terraform Provider & HCL Resources
 @/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-terraform/SKILL.md
 
+### Monaco CLI & Tenant Migration
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-monaco/SKILL.md
+
 ### Dynatrace Platform APIs
 @/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-apis/SKILL.md
+
+### SVG Diagrams & Documentation Graphics
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/svg-graphics/SKILL.md
 
 ## Decision Log
 
