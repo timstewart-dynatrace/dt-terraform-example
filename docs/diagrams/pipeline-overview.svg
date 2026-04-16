@@ -1,106 +1,119 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
   <defs>
-    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#6B7280"/>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
     </marker>
-    <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#3B82F6"/>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1496FF"/>
     </marker>
   </defs>
 
   <!-- Background -->
-  <rect width="900" height="520" rx="8" fill="#F9FAFB"/>
+  <rect width="930" height="500" fill="#0F172A"/>
 
   <!-- Title -->
-  <text x="450" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#111827">Pipeline Architecture</text>
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Pipeline Architecture</text>
+  <text x="465" y="60" text-anchor="middle" fill="#94A3B8" font-size="13">Export and Deploy with Git as intermediary</text>
 
-  <!-- Export Pipeline Box -->
-  <rect x="30" y="55" width="390" height="420" rx="8" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1.5"/>
-  <text x="225" y="78" text-anchor="middle" font-size="15" font-weight="bold" fill="#1E40AF">Export Pipeline</text>
+  <!-- Export Pipeline Column -->
+  <rect x="30" y="80" width="370" height="390" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="215" y="105" text-anchor="middle" fill="#86EFAC" font-size="15" font-weight="700">Export Pipeline</text>
 
   <!-- Export steps -->
-  <rect x="60" y="95" width="330" height="36" rx="6" fill="#DBEAFE" stroke="#93C5FD"/>
-  <text x="225" y="118" text-anchor="middle" fill="#1E3A8A">1. Verify source tenant connection</text>
+  <rect x="55" y="120" width="320" height="32" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="215" y="141" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="600">1. Verify source tenant</text>
 
-  <line x1="225" y1="131" x2="225" y2="145" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="215" y1="152" x2="215" y2="162" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="60" y="148" width="330" height="36" rx="6" fill="#DBEAFE" stroke="#93C5FD"/>
-  <text x="225" y="171" text-anchor="middle" fill="#1E3A8A">2. Export raw JSON via Dynatrace API</text>
+  <rect x="55" y="167" width="320" height="32" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="215" y="188" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="600">2. Export raw JSON via API</text>
 
-  <line x1="225" y1="184" x2="225" y2="198" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="215" y1="199" x2="215" y2="209" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- Format choice -->
-  <rect x="60" y="201" width="155" height="36" rx="6" fill="#C7D2FE" stroke="#818CF8"/>
-  <text x="137" y="224" text-anchor="middle" font-size="12" fill="#312E81">3a. Terraform .tf.json</text>
+  <rect x="55" y="214" width="152" height="32" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="131" y="235" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">3a. Terraform .tf.json</text>
 
-  <rect x="235" y="201" width="155" height="36" rx="6" fill="#C7D2FE" stroke="#818CF8"/>
-  <text x="312" y="224" text-anchor="middle" font-size="12" fill="#312E81">3b. Monaco v2 YAML</text>
+  <rect x="223" y="214" width="152" height="32" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="299" y="235" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">3b. Monaco v2 YAML</text>
 
-  <line x1="225" y1="237" x2="225" y2="251" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="215" y1="246" x2="215" y2="256" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="60" y="254" width="330" height="36" rx="6" fill="#DBEAFE" stroke="#93C5FD"/>
-  <text x="225" y="277" text-anchor="middle" fill="#1E3A8A">4. Reconciliation (export vs tenant)</text>
+  <rect x="55" y="261" width="320" height="32" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="215" y="282" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="600">4. Reconciliation</text>
 
-  <line x1="225" y1="290" x2="225" y2="304" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="215" y1="293" x2="215" y2="303" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="60" y="307" width="330" height="36" rx="6" fill="#DBEAFE" stroke="#93C5FD"/>
-  <text x="225" y="330" text-anchor="middle" fill="#1E3A8A">5. Topology analysis (deploy order)</text>
+  <rect x="55" y="308" width="320" height="32" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="215" y="329" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="600">5. Topology analysis</text>
 
-  <line x1="225" y1="343" x2="225" y2="357" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="215" y1="340" x2="215" y2="350" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="60" y="360" width="330" height="36" rx="6" fill="#BBF7D0" stroke="#86EFAC"/>
-  <text x="225" y="383" text-anchor="middle" fill="#14532D">6. Push to branch + open PR</text>
+  <rect x="55" y="355" width="320" height="32" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="215" y="376" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="600">6. Push to branch + open PR</text>
 
-  <!-- GitHub / Git middle section -->
-  <rect x="435" y="170" width="50" height="180" rx="6" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1.5"/>
-  <text x="460" y="220" text-anchor="middle" font-size="11" fill="#92400E" transform="rotate(-90 460 220)">GitHub Branch</text>
-  <text x="460" y="295" text-anchor="middle" font-size="22" fill="#D97706">PR</text>
+  <!-- GitHub center column -->
+  <rect x="420" y="150" width="90" height="220" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="465" y="175" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">GitHub</text>
+  <text x="465" y="195" text-anchor="middle" fill="#94A3B8" font-size="11">Branch</text>
+
+  <rect x="435" y="230" width="60" height="30" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="465" y="250" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">PR</text>
+
+  <text x="465" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">Code</text>
+  <text x="465" y="305" text-anchor="middle" fill="#94A3B8" font-size="11">Review</text>
+
+  <rect x="435" y="320" width="60" height="26" fill="#73BE28" opacity="0.2" stroke="#73BE28" rx="4"/>
+  <text x="465" y="338" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="600">Merge</text>
 
   <!-- Arrows to/from GitHub -->
-  <line x1="390" y1="378" x2="435" y2="310" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
-  <line x1="485" y1="250" x2="520" y2="200" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <line x1="375" y1="371" x2="420" y2="310" stroke="#1496FF" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <line x1="510" y1="260" x2="540" y2="200" stroke="#1496FF" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
 
-  <!-- Deploy Pipeline Box -->
-  <rect x="510" y="55" width="370" height="420" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1.5"/>
-  <text x="695" y="78" text-anchor="middle" font-size="15" font-weight="bold" fill="#991B1B">Deploy Pipeline</text>
+  <!-- Deploy Pipeline Column -->
+  <rect x="530" y="80" width="370" height="390" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="715" y="105" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">Deploy Pipeline</text>
 
   <!-- Deploy steps -->
-  <rect x="535" y="95" width="320" height="36" rx="6" fill="#FEE2E2" stroke="#FCA5A5"/>
-  <text x="695" y="118" text-anchor="middle" fill="#7F1D1D">1. Auto-detect format (TF / Monaco)</text>
+  <rect x="555" y="120" width="320" height="32" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="715" y="141" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="600">1. Auto-detect format</text>
 
-  <line x1="695" y1="131" x2="695" y2="145" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="715" y1="152" x2="715" y2="162" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="535" y="148" width="320" height="36" rx="6" fill="#FEE2E2" stroke="#FCA5A5"/>
-  <text x="695" y="171" text-anchor="middle" fill="#7F1D1D">2. Verify target tenant connection</text>
+  <rect x="555" y="167" width="320" height="32" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="715" y="188" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="600">2. Verify target tenant</text>
 
-  <line x1="695" y1="184" x2="695" y2="198" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="715" y1="199" x2="715" y2="209" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="535" y="201" width="320" height="36" rx="6" fill="#FEE2E2" stroke="#FCA5A5"/>
-  <text x="695" y="224" text-anchor="middle" fill="#7F1D1D">3. Snapshot pre-deploy state</text>
+  <rect x="555" y="214" width="320" height="32" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="715" y="235" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="600">3. Snapshot pre-deploy state</text>
 
-  <line x1="695" y1="237" x2="695" y2="251" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="715" y1="246" x2="715" y2="256" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- Deploy choice -->
-  <rect x="535" y="254" width="150" height="36" rx="6" fill="#FECACA" stroke="#F87171"/>
-  <text x="610" y="277" text-anchor="middle" font-size="12" fill="#7F1D1D">4a. terraform apply</text>
+  <rect x="555" y="261" width="152" height="32" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="631" y="282" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">4a. terraform apply</text>
 
-  <rect x="705" y="254" width="150" height="36" rx="6" fill="#FECACA" stroke="#F87171"/>
-  <text x="780" y="277" text-anchor="middle" font-size="12" fill="#7F1D1D">4b. monaco deploy</text>
+  <rect x="723" y="261" width="152" height="32" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="799" y="282" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">4b. monaco deploy</text>
 
-  <line x1="695" y1="290" x2="695" y2="304" stroke="#6B7280" marker-end="url(#arrow)"/>
+  <line x1="715" y1="293" x2="715" y2="303" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="535" y="307" width="320" height="36" rx="6" fill="#FEE2E2" stroke="#FCA5A5"/>
-  <text x="695" y="330" text-anchor="middle" fill="#7F1D1D">5. Post-deploy analysis (before/after)</text>
+  <rect x="555" y="308" width="320" height="32" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="715" y="329" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="600">5. Post-deploy analysis</text>
 
-  <!-- Source and Target labels -->
-  <rect x="60" y="415" width="150" height="44" rx="8" fill="#7C3AED" opacity="0.9"/>
-  <text x="135" y="437" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Source Tenant</text>
-  <text x="135" y="452" text-anchor="middle" font-size="11" fill="#E9D5FF">Dynatrace API</text>
+  <!-- Tenant labels -->
+  <rect x="55" y="405" width="150" height="44" fill="#1E293B" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="130" y="426" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">Source Tenant</text>
+  <text x="130" y="442" text-anchor="middle" fill="#94A3B8" font-size="11">Dynatrace API</text>
 
-  <rect x="670" y="360" width="150" height="44" rx="8" fill="#7C3AED" opacity="0.9"/>
-  <text x="745" y="382" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Target Tenant</text>
-  <text x="745" y="397" text-anchor="middle" font-size="11" fill="#E9D5FF">Dynatrace API</text>
+  <rect x="725" y="355" width="150" height="44" fill="#1E293B" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="800" y="376" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">Target Tenant</text>
+  <text x="800" y="392" text-anchor="middle" fill="#94A3B8" font-size="11">Dynatrace API</text>
+
+  <!-- Divider -->
+  <line x1="40" y1="475" x2="890" y2="475" stroke="#334155" stroke-width="1"/>
 
   <!-- Footer -->
-  <text x="450" y="498" text-anchor="middle" font-size="11" fill="#6B7280">Triggered via GitHub Actions (workflow_dispatch) or local CLI</text>
+  <text x="465" y="493" text-anchor="middle" fill="#94A3B8" font-size="11">Triggered via GitHub Actions (workflow_dispatch) or local CLI</text>
 </svg>
