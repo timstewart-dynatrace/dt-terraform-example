@@ -111,6 +111,8 @@ Configure these secrets in your repository:
 │   └── pipeline.yaml.example       # Pipeline behavior configuration
 │
 ├── docs/
+│   ├── diagrams/
+│   │   └── pipeline-overview.svg   # Architecture diagram
 │   ├── GETTING_STARTED.md          # Quick-start guide
 │   ├── ADVANCED.md                 # Advanced usage and CI/CD
 │   └── TROUBLESHOOTING.md          # Common issues and solutions

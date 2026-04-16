@@ -28,10 +28,10 @@ Use the format below. Log decisions **at the time** they're made, not retroactiv
 
 ## 2026-04-16 — Backup-First Deployment Behavior
 
-**Chosen:** Always back up target tenant configuration before deploying changes
-**Alternatives:** Skip backup for speed, optional backup via flag
+**Chosen:** Back up target tenant configuration by default before deploying changes
+**Alternatives:** Skip backup for speed, no backup option at all
 **Why:** Safety default. Configuration migration is destructive — overwriting target config without backup risks data loss. The backup-first approach makes rollback possible.
-**Trade-offs:** Slower migration due to additional API calls. Disk space for backup storage.
+**Trade-offs:** Slower migration due to additional API calls. Disk space for backup storage. Shell script provides `--no-backup` flag for cases where speed matters. Python script skips backup in dry-run mode (no changes applied, so no backup needed).
 **Revisit if:** Backup adds unacceptable latency for large tenants, or if a separate backup tool is adopted.
 
 ---

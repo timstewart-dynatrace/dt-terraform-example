@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Post-export reconciliation: compare exported items against tenant state
 - Post-export topology analysis: map entity cross-references and compute deployment order
 - Post-deploy results analysis: compare before/after tenant counts
-- Pipeline configuration via `config/pipeline.yaml` with `${ENV_VAR}` interpolation
+- Pipeline configuration template (`config/pipeline.yaml.example`) with `${ENV_VAR}` interpolation
 - Shared Dynatrace API client (`pipelines/core/dt_client.py`)
 - Format auto-detection for deploy pipeline (Terraform vs Monaco)
 - `tabulate` dependency for formatted report output
