@@ -1,0 +1,113 @@
+name: Deploy Dynatrace Configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Branch containing configs to deploy"
+        required: true
+        default: "export/latest"
+        type: string
+      config_types:
+        description: "Config types to deploy"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - dashboard
+          - management-zone
+          - alerting-profile
+          - auto-tag
+          - notification
+          - synthetic-monitor
+          - extension
+          - request-naming
+          - synthetic-location
+      dry_run:
+        description: "Dry run (plan only, no apply)"
+        required: false
+        default: true
+        type: boolean
+      run_analysis:
+        description: "Run post-deploy analysis"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  detect:
+    name: Detect Project Type
+    runs-on: ubuntu-latest
+    outputs:
+      project_type: ${{ steps.detect.outputs.project_type }}
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+
+      - name: Detect format
+        id: detect
+        run: |
+          if find configs/ -name '*.tf' -o -name '*.tf.json' 2>/dev/null | head -1 | grep -q .; then
+            echo "project_type=terraform" >> "$GITHUB_OUTPUT"
+            echo "Detected: Terraform"
+          elif find configs/ -name 'manifest.yaml' 2>/dev/null | head -1 | grep -q .; then
+            echo "project_type=monaco" >> "$GITHUB_OUTPUT"
+            echo "Detected: Monaco"
+          else
+            echo "project_type=unknown" >> "$GITHUB_OUTPUT"
+            echo "::error::Could not detect project type in configs/"
+          fi
+
+  deploy:
+    name: Deploy (${{ needs.detect.outputs.project_type }})
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.project_type != 'unknown'
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Terraform
+        if: needs.detect.outputs.project_type == 'terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8"
+
+      - name: Install Monaco
+        if: needs.detect.outputs.project_type == 'monaco'
+        run: |
+          MONACO_VERSION="2.12.0"
+          curl -sL "https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/download/v${MONACO_VERSION}/monaco-linux-amd64" -o /usr/local/bin/monaco
+          chmod +x /usr/local/bin/monaco
+          monaco version
+
+      - name: Run deploy pipeline
+        env:
+          TARGET_TENANT_URL: ${{ secrets.TARGET_TENANT_URL }}
+          TARGET_TENANT_TOKEN: ${{ secrets.TARGET_TENANT_TOKEN }}
+        run: |
+          python pipelines/deploy.py \
+            --source-dir configs/ \
+            --target-url "$TARGET_TENANT_URL" \
+            --target-token "$TARGET_TENANT_TOKEN" \
+            --types "${{ inputs.config_types }}" \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            ${{ inputs.run_analysis && '--analyze' || '' }}

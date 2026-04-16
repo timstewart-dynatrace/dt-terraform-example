@@ -1,0 +1,137 @@
+name: Export Dynatrace Configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      config_types:
+        description: "Config types to export"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - dashboard
+          - management-zone
+          - alerting-profile
+          - auto-tag
+          - notification
+          - synthetic-monitor
+          - extension
+          - request-naming
+          - synthetic-location
+      export_format:
+        description: "Export format"
+        required: true
+        default: "terraform"
+        type: choice
+        options:
+          - terraform
+          - monaco
+      target_branch:
+        description: "Branch to push exported configs to"
+        required: true
+        default: "export/latest"
+        type: string
+      run_reconciliation:
+        description: "Run reconciliation after export"
+        required: false
+        default: true
+        type: boolean
+      run_topology:
+        description: "Run topology analysis"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  export:
+    name: Export Configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run export pipeline
+        env:
+          SOURCE_TENANT_URL: ${{ secrets.SOURCE_TENANT_URL }}
+          SOURCE_TENANT_TOKEN: ${{ secrets.SOURCE_TENANT_TOKEN }}
+        run: |
+          python pipelines/export.py \
+            --source-url "$SOURCE_TENANT_URL" \
+            --source-token "$SOURCE_TENANT_TOKEN" \
+            --types "${{ inputs.config_types }}" \
+            --format "${{ inputs.export_format }}" \
+            --output-dir exported \
+            ${{ inputs.run_reconciliation && '--reconcile' || '' }} \
+            ${{ inputs.run_topology && '--topology' || '' }}
+
+      - name: Upload export artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: exported-configs-${{ inputs.export_format }}
+          path: exported/
+          retention-days: 30
+
+      - name: Push to export branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create or switch to export branch
+          git checkout -B "${{ inputs.target_branch }}"
+
+          # Copy formatted output to repo root for clean branch
+          FORMAT="${{ inputs.export_format }}"
+          if [ -d "exported/$FORMAT" ]; then
+            # Remove old exported configs (keep repo structure)
+            rm -rf configs/
+            mkdir -p configs/
+            cp -r "exported/$FORMAT/." configs/
+          fi
+
+          git add configs/
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+
+          git commit -m "export($FORMAT): $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ inputs.config_types }}"
+          git push --force-with-lease origin "${{ inputs.target_branch }}"
+
+      - name: Create pull request
+        if: ${{ inputs.target_branch != 'main' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --head "${{ inputs.target_branch }}" --json number --jq '.[0].number' 2>/dev/null || true)
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for this branch"
+          else
+            gh pr create \
+              --title "export(${{ inputs.export_format }}): ${{ inputs.config_types }}" \
+              --body "$(cat <<'EOF'
+          ## Exported Configuration
+
+          - **Format:** ${{ inputs.export_format }}
+          - **Types:** ${{ inputs.config_types }}
+          - **Source:** ${{ secrets.SOURCE_TENANT_URL }}
+          - **Reconciliation:** ${{ inputs.run_reconciliation }}
+          - **Topology:** ${{ inputs.run_topology }}
+
+          Review the exported configuration files in `configs/` before merging.
+          EOF
+          )" \
+              --head "${{ inputs.target_branch }}" \
+              --base main
+          fi

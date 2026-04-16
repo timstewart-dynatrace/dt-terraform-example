@@ -1,0 +1,37 @@
+# Pipeline Configuration
+# Copy to config/pipeline.yaml and customize.
+# Secrets (tokens) should stay in .env — reference them here with ${VAR}.
+
+export:
+  # Source tenant (overridable via CLI flags or env vars)
+  source_tenant_url: ${SOURCE_TENANT_URL}
+  source_tenant_token: ${SOURCE_TENANT_TOKEN}
+
+  # Default export format: "monaco" or "terraform"
+  default_format: terraform
+
+  # GitHub target for exported configs
+  github:
+    repo: "CORP/dt-configs"          # owner/repo
+    branch: "main"                    # target branch
+    path: "exported"                  # subdirectory in repo for exports
+
+  # Default config types (empty list = all)
+  default_types: []
+
+deploy:
+  # Target tenant
+  target_tenant_url: ${TARGET_TENANT_URL}
+  target_tenant_token: ${TARGET_TENANT_TOKEN}
+
+  # GitHub source for configs to deploy
+  github:
+    repo: "CORP/dt-configs"
+    branch: "main"
+    path: "exported"
+
+  # Default config types (empty list = all)
+  default_types: []
+
+  # Skip confirmation prompt in deploy
+  auto_approve: false
