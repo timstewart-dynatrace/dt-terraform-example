@@ -55,8 +55,6 @@ dt-terraform-example/
 
 ## Pipeline Architecture
 
-![Pipeline Overview](../docs/diagrams/pipeline-overview.svg)
-
 ### Export Pipeline
 ```
 Source Tenant

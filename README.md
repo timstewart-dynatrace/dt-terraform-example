@@ -1,159 +1,172 @@
-# Dynatrace Terraform Configuration Migration
+# Dynatrace Configuration Migration
 
-This project provides Python and Shell tools for cloning and migrating Dynatrace configuration between tenants using Terraform-compatible workflows.
+Tools for exporting and deploying Dynatrace configuration between tenants, with support for both Terraform and Monaco formats.
 
-## Overview
+![Pipeline Overview](docs/diagrams/pipeline-overview.svg)
 
-The scripts in this repository orchestrate source export, validation, backup, and target deployment while working with Terraform-oriented configuration structures.
+## Two-Pipeline Architecture
 
-## Prerequisites
+Configuration management is split into two independent pipelines with Git as the intermediary:
 
-- **Terraform CLI 1.5+**
+- **Export Pipeline** — Pull configuration from a source tenant, transform to Terraform or Monaco format, push to a Git branch for review
+- **Deploy Pipeline** — Read configuration from a Git branch, auto-detect the format, apply to a target tenant
+
+This separation enables code review between export and deploy, version history of all configuration, and format-agnostic workflows.
+
+## Quick Start
+
+### Prerequisites
+
+- **Python 3.8+** with pip
+- **Terraform CLI 1.5+** (for Terraform format deployments)
+- **Monaco CLI v2.12+** (for Monaco format deployments)
 - **Git**
-- **Python 3.8+** (for Python scripts)
-- Dynatrace tenant(s) with API access
-- API tokens for both source and target tenants
 
-## Installation
-
-### 1. Install Terraform
-
-Check your current Terraform version:
+### Installation
 
 ```bash
-terraform --version
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp config/.env.example .env
+nano .env  # Add tenant URLs and API tokens
 ```
 
-If Terraform is not installed on macOS:
+### Export Configuration
 
 ```bash
-brew tap hashicorp/tap
-brew install hashicorp/tap/terraform
+# Export all config types as Terraform format
+python pipelines/export.py \
+    --types all \
+    --format terraform \
+    --output-dir exported
+
+# Export only dashboards as Monaco format
+python pipelines/export.py \
+    --types dashboard \
+    --format monaco \
+    --output-dir exported \
+    --reconcile \
+    --topology
+
+# List available config types
+python pipelines/export.py --list-types
 ```
 
-### 2. Set Up Environment Variables
-
-Create a `.env` file in the project root:
+### Deploy Configuration
 
 ```bash
-# Source tenant
-SOURCE_TENANT_URL=https://your-source-tenant.live.dynatrace.com
-SOURCE_TENANT_TOKEN=your-source-api-token
+# Dry run (plan only)
+python pipelines/deploy.py \
+    --source-dir exported/terraform \
+    --dry-run
 
-# Target tenant
-TARGET_TENANT_URL=https://your-target-tenant.live.dynatrace.com
-TARGET_TENANT_TOKEN=your-target-api-token
+# Apply to target tenant
+python pipelines/deploy.py \
+    --source-dir exported/terraform \
+    --analyze
 ```
+
+### GitHub Actions
+
+Both pipelines are available as GitHub Actions workflows with `workflow_dispatch` inputs:
+
+- **Export** (`.github/workflows/export.yml`) — Select config types, format, target branch. Opens a PR for review.
+- **Deploy** (`.github/workflows/deploy.yml`) — Select source branch, config types, dry-run toggle. Auto-detects format.
+
+Configure these secrets in your repository:
+
+| Secret | Purpose |
+|--------|---------|
+| `SOURCE_TENANT_URL` | Source Dynatrace tenant URL |
+| `SOURCE_TENANT_TOKEN` | Source tenant API token |
+| `TARGET_TENANT_URL` | Target Dynatrace tenant URL |
+| `TARGET_TENANT_TOKEN` | Target tenant API token |
 
 ## Project Structure
 
 ```
 .
-├── README.md                      # This file
-├── .env                           # Environment variables (create this)
-├── config/                        # Terraform-oriented migration files
-│   ├── environments.yaml          # Environment definitions
-│   └── tenants/                   # Tenant-specific configs
-├── scripts/
-│   ├── migrate.py                 # Python migration script
-│   ├── migrate.sh                 # Shell script migration
-│   └── clone-config.sh            # Clone configuration helper
-└── docs/                          # Additional documentation
+├── pipelines/                      # Export/Deploy pipeline system
+│   ├── export.py                   # Export CLI
+│   ├── deploy.py                   # Deploy CLI
+│   ├── core/                       # Shared: API client, config, types
+│   ├── export_pipeline/            # Format generators, reconciliation, topology
+│   └── deploy_pipeline/            # Format detector, deployers, analysis
+│
+├── .github/workflows/              # GitHub Actions
+│   ├── export.yml                  # Export workflow (workflow_dispatch)
+│   └── deploy.yml                  # Deploy workflow (workflow_dispatch)
+│
+├── scripts/                        # Legacy single-step migration tools
+│   ├── migrate.py                  # All-in-one Python migration
+│   ├── migrate.sh                  # All-in-one Shell migration
+│   ├── clone-config.sh             # Download config helper
+│   └── verify_migration.py         # Post-migration verification
+│
+├── config/
+│   ├── .env.example                # Environment variable template
+│   ├── environments.yaml           # Tenant configuration template
+│   └── pipeline.yaml.example       # Pipeline behavior configuration
+│
+├── docs/
+│   ├── GETTING_STARTED.md          # Quick-start guide
+│   ├── ADVANCED.md                 # Advanced usage and CI/CD
+│   └── TROUBLESHOOTING.md          # Common issues and solutions
+│
+├── setup.sh                        # Interactive setup wizard
+└── requirements.txt                # Python dependencies
 ```
 
-## Usage
+## Supported Configuration Types
 
-### Using the Python Script
+| Type | Description |
+|------|-------------|
+| `alerting-profile` | Alert notification rules |
+| `auto-tag` | Auto-tagging rules |
+| `dashboard` | Dashboards |
+| `extension` | Extensions |
+| `management-zone` | Management zones |
+| `notification` | Notification configurations |
+| `request-naming` | Request naming rules |
+| `synthetic-location` | Synthetic test locations |
+| `synthetic-monitor` | Synthetic monitors |
 
-```bash
-python scripts/migrate.py \
-  --source https://source-tenant.live.dynatrace.com \
-  --target https://target-tenant.live.dynatrace.com \
-  --source-token YOUR_SOURCE_TOKEN \
-  --target-token YOUR_TARGET_TOKEN
-```
+## Export Formats
 
-### Using the Shell Script
+### Terraform
 
-```bash
-./scripts/migrate.sh \
-  --source-url https://source-tenant.live.dynatrace.com \
-  --target-url https://target-tenant.live.dynatrace.com \
-  --source-token YOUR_SOURCE_TOKEN \
-  --target-token YOUR_TARGET_TOKEN
-```
+Generates `.tf.json` files using the [dynatrace-oss/dynatrace](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest) provider. Includes provider configuration, variable definitions, and resource blocks per config type.
 
-### Using Environment Variables
+### Monaco
 
-```bash
-source .env
-python scripts/migrate.py
-```
+Generates a [Monaco v2](https://github.com/Dynatrace/dynatrace-configuration-as-code) project structure with `manifest.yaml`, `config.yaml` per type, and JSON payloads.
 
-## Configuration Files
+## Post-Export Analysis
 
-Edit `config/environments.yaml` to define your tenants:
+### Reconciliation
 
-```yaml
-environments:
-  source:
-    name: source-tenant
-    url: https://source-tenant.live.dynatrace.com
-    token: ${SOURCE_TENANT_TOKEN}
-  
-  target:
-    name: target-tenant
-    url: https://target-tenant.live.dynatrace.com
-    token: ${TARGET_TENANT_TOKEN}
-```
+Compares what was exported against what the tenant API reports, surfacing any items that failed to export.
 
-## Features
+### Topology Analysis
 
-- ✅ Clone configuration from source to target tenant
-- ✅ Support for all Dynatrace configuration types
-- ✅ Dry-run mode to preview changes
-- ✅ Validation before deployment
-- ✅ Rollback capabilities
-- ✅ Detailed logging
+Scans exported configs for cross-references between entities (e.g., alerting profiles referencing management zones) and computes a recommended deployment order by dependency layer.
 
 ## Getting API Tokens
 
 1. Go to your Dynatrace tenant
-2. Navigate to **Settings** → **Integration** → **Dynatrace API**
-3. Create a new token with the following scopes:
-   - Read configuration (`config.read`)
-   - Write configuration (`config.write`)
-   - Read Dashboards (`dashboards.read`)
-   - Write Dashboards (`dashboards.write`)
-   - And other necessary scopes based on your use case
-
-## Troubleshooting
-
-### "terraform: command not found"
-
-Ensure Terraform is installed and available in your PATH:
-```bash
-which terraform
-terraform --version
-```
-
-### "Invalid API token"
-
-- Verify your tokens are correct
-- Check that tokens have the necessary scopes
-- Ensure tokens haven't expired
-
-### "Configuration validation failed"
-
-- Check the error messages in the logs
-- Verify your configuration YAML is properly formatted
-- Ensure all required fields are present
+2. Navigate to **Settings** > **Integration** > **Dynatrace API**
+3. Create a token with scopes:
+   - `config.read` (source tenant)
+   - `config.write` (target tenant)
+   - `dashboards.read` / `dashboards.write`
 
 ## References
 
 - [Dynatrace Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest)
+- [Dynatrace Monaco CLI](https://github.com/Dynatrace/dynatrace-configuration-as-code)
 - [Dynatrace API Documentation](https://www.dynatrace.com/support/help/dynatrace-api)
-- [Configuration as Code Best Practices](https://www.dynatrace.com/support/help/how-to-use-dynatrace/configuration-management/configuration-as-code)
 
 ## License
 
