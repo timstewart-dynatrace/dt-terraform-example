@@ -19,6 +19,7 @@ Standalone tools for Dynatrace configuration migration between tenants using Ter
 | HTTP | requests 2.31+ | API calls to Dynatrace tenants |
 | Config | PyYAML 6.0+ | Environment configuration |
 | Env Mgmt | python-dotenv 1.0+ | Secure credential management via .env files |
+| Output | tabulate 0.9+ | Formatted table output for pipeline reports |
 | Utilities | curl, jq | Shell-based API interaction and JSON processing |
 
 ## Architecture
@@ -61,9 +62,10 @@ python3 scripts/verify_migration.py
 ## Current Phase
 
 Before starting work, check `.claude/phases/` for the active phase.
-- Active Phase: See `PHASE-01-active.md` (or current phase)
+- Completed: `PHASE-01-done.md` (best-practices conformance)
+- To start new work: Create `PHASE-02-active.md`
 - Track: Append decisions to `DECISIONS.md` as you go
-- When Done: Rename to `PHASE-01-done.md`, create `PHASE-02-active.md`
+- When done: Rename `active` to `done`, create next phase
 
 Detailed phase management rules: @.claude/rules/core.md
 
