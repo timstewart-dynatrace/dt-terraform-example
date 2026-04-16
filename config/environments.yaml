@@ -1,0 +1,22 @@
+# Dynatrace Terraform Migration Configuration
+#
+# This file contains the environments configuration for full tenant migration.
+# The source tenant will be completely copied to the target tenant.
+#
+# For security, use environment variables instead of storing tokens here:
+# - SOURCE_TENANT_URL, SOURCE_TENANT_TOKEN
+# - TARGET_TENANT_URL, TARGET_TENANT_TOKEN
+#
+# Create a .env file using .env.example template and source it before running migration scripts.
+#
+
+environments:
+  source:
+    name: source
+    url: https://source-environment.live.dynatrace.com
+    token: your_source_api_token
+
+  target:
+    name: target
+    url: https://target-environment.live.dynatrace.com
+    token: your_target_api_token
