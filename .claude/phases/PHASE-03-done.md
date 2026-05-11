@@ -1,6 +1,6 @@
 # Phase 03 -- Pytest Coverage for Combined Auth + CI
 
-Status: ACTIVE
+Status: DONE
 
 ## Goal
 
