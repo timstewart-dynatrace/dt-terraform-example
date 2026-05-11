@@ -157,12 +157,37 @@ Scans exported configs for cross-references between entities (e.g., alerting pro
 
 ## Getting API Tokens
 
+The pipelines support **combined auth** — a Platform Token as the primary credential plus an optional classic API Token for endpoints that require it.
+
+### Primary token (`*_TENANT_TOKEN`)
+
+The primary credential may be either:
+
+- **Platform Token** (`dt0s16` prefix) — recommended for new tenants; sent as `Authorization: Bearer`
+- **Classic API Token** (`dt0c01` prefix) — sent as `Authorization: Api-Token`
+
+The Authorization header format is auto-detected by token prefix.
+
+### Optional classic API token (`*_TENANT_API_TOKEN`)
+
+Set this when the primary token is a Platform Token and you need to manage resources that the Dynatrace Terraform provider removed from Platform-Token coverage in v1.88.0 (per the [v1.88.0 release notes](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases/tag/v1.88.0) — *"The OAuth functionality has been removed for the following resources, which previously relied on the `environment-api:*` scopes"*):
+
+- Synthetic monitors and locations
+- Network monitors / network zones
+- AG tokens, API tokens, credential vault
+- Custom devices, custom tags
+- Host monitoring mode, key requests
+- Hub extension active version + config
+- SLO v1 / v2
+
+If your primary token is already a classic API Token (`dt0c01`), leave the `_API_TOKEN` slot unset — the primary token will be reused for these endpoints automatically.
+
+### Creating tokens
+
 1. Go to your Dynatrace tenant
-2. Navigate to **Settings** > **Integration** > **Dynatrace API**
-3. Create a token with scopes:
-   - `config.read` (source tenant)
-   - `config.write` (target tenant)
-   - `dashboards.read` / `dashboards.write`
+2. Navigate to **Settings** → **Access tokens** (or **Settings** → **Integration** → **Dynatrace API** for the classic flow)
+3. For a **Platform Token**: select the platform scopes you need (`settings:read/write`, `automation:workflows:read/write`, `document:documents:read/write`, etc.)
+4. For a **classic Access Token**: select the scopes you need (`config.read`, `config.write`, `entities.read`, etc.)
 
 ## References
 

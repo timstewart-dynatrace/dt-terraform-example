@@ -97,8 +97,35 @@ MONACO_TYPE_MAP: Dict[str, str] = {
 
 @dataclass
 class TenantConfig:
+    """Tenant connection settings.
+
+    Two token slots are supported:
+
+    - ``token`` is the primary credential. It may be a **Platform Token**
+      (``dt0s16``/``dt0s01`` prefix — sent as ``Authorization: Bearer``) or a
+      **classic Access Token** (``dt0c01`` prefix — sent as
+      ``Authorization: Api-Token``). The header format is auto-detected by
+      prefix in :class:`DynatraceClient`.
+
+    - ``api_token`` is an optional secondary credential, only used when the
+      primary token is a Platform Token *and* a particular request targets an
+      endpoint that Dynatrace removed from Platform-Token coverage in
+      Terraform provider v1.88.0 (synthetic monitors, network monitors,
+      AG/API tokens, credentials, custom devices, custom tags, host
+      monitoring mode, key requests, hub extension active version + config,
+      SLO v1/v2). These endpoints require a classic API Token even when
+      everything else in the same tenant works with the Platform Token.
+
+    Backward compatibility: a config that sets only ``token`` (regardless of
+    prefix) continues to work — Platform-Token-prefixed tokens get Bearer
+    headers, classic-API-Token-prefixed tokens get Api-Token headers, and
+    requests to the v1.88.0 exclusion list fall back to the primary token if
+    it is classic-API-shaped.
+    """
+
     url: str
     token: str
+    api_token: Optional[str] = None
 
 
 @dataclass

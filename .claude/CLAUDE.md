@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Standalone tools for Dynatrace configuration migration between tenants using Terraform-compatible workflows. Provides Python and Shell scripts for source export, validation, backup, and target deployment. Built for Dynatrace administrators who need reliable, safe configuration migration between tenants.
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-05-11
 
 ## Tech Stack
 
@@ -63,7 +63,7 @@ python3 scripts/verify_migration.py
 
 Before starting work, check `.claude/phases/` for the active phase.
 - Completed: `PHASE-01-done.md` (best-practices conformance)
-- To start new work: Create `PHASE-02-active.md`
+- Active: `PHASE-02-active.md` (combined auth + dependency refresh)
 - Track: Append decisions to `DECISIONS.md` as you go
 - When done: Rename `active` to `done`, create next phase
 

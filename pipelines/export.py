@@ -88,9 +88,11 @@ def main() -> int:
     cfg = PipelineConfig.load(args.config)
 
     # Resolve source tenant
+    cfg_source = cfg.get_source_tenant()
     source = TenantConfig(
-        url=args.source_url or cfg.get_source_tenant().url,
-        token=args.source_token or cfg.get_source_tenant().token,
+        url=args.source_url or cfg_source.url,
+        token=args.source_token or cfg_source.token,
+        api_token=getattr(args, "source_api_token", None) or cfg_source.api_token,
     )
     if not source.url or not source.token:
         logger.error(
