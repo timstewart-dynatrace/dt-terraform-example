@@ -36,6 +36,23 @@ Use the format below. Log decisions **at the time** they're made, not retroactiv
 
 ---
 
+## 2026-05-11 — Combined Auth (Platform Token + classic API Token, URL-routed)
+
+**Chosen:** Support both Platform Tokens (`dt0s16` / `dt0s01`, sent as `Authorization: Bearer`) and classic Access Tokens (`dt0c01`, sent as `Authorization: Api-Token`) in a single client. Auto-detect the header format by token prefix. Add an optional secondary `*_TENANT_API_TOKEN` slot used only for endpoints in the v1.88.0 Dynatrace-Terraform-provider exclusion list (synthetic monitors, network monitors, AG/API tokens, credentials, custom devices, custom tags, host monitoring mode, key requests, hub extension active version + config, SLO v1/v2).
+
+**Alternatives:**
+- Platform-Token-only — fails on the v1.88.0 exclusion list.
+- Classic-API-Token-only — works (status quo before Phase 02) but doesn't align with Dynatrace's current default for new tenants and loses the new-token-prefix scope coverage that Platform Tokens give.
+- Two completely separate clients (one Platform, one classic) — doubles the code and call-sites have to choose; routing by URL inside a single client is cleaner.
+
+**Why:** Matches the architecture the Dynatrace Terraform provider settled on at v1.88.0 — *"The OAuth functionality has been removed for the following resources, which previously relied on the `environment-api:*` scopes"* (release notes). The provider implements per-resource auth routing because the underlying REST API has the same boundary. We mirror that. Aligns with the combined-auth pattern in the Best-Practice-Notebooks-Generator project's AUTOM-07 §3.1.
+
+**Trade-offs:** Two tokens to manage per tenant (when the primary is a Platform Token). The URL-pattern routing list (`_CLASSIC_API_TOKEN_URL_PATTERNS` in `dt_client.py`) is a maintenance surface — if Dynatrace shifts the boundary again, that list needs updating. Backward compatibility preserved: a config with only `*_TENANT_TOKEN=dt0c01...` works identically to before (the primary token is classic-shaped, so the excluded endpoints reuse it via the fall-back path).
+
+**Revisit if:** Dynatrace publishes a clean source-of-truth list of which endpoints accept which token type (today the v1.88.0 release notes are the most concrete source). Or if the boundary shifts substantially across a future provider major version.
+
+---
+
 ## 2026-04-16 — Flat Script Directory Structure
 
 **Chosen:** All scripts in a single `scripts/` directory

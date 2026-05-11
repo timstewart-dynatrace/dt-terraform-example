@@ -65,20 +65,26 @@ class PipelineConfig:
 
     def get_source_tenant(self) -> TenantConfig:
         export_cfg = self._data.get("export", {})
+        api_token = (export_cfg.get("source_tenant_api_token")
+                     or os.environ.get("SOURCE_TENANT_API_TOKEN") or None)
         return TenantConfig(
             url=(export_cfg.get("source_tenant_url")
                  or os.environ.get("SOURCE_TENANT_URL", "")),
             token=(export_cfg.get("source_tenant_token")
                    or os.environ.get("SOURCE_TENANT_TOKEN", "")),
+            api_token=api_token,
         )
 
     def get_target_tenant(self) -> TenantConfig:
         deploy_cfg = self._data.get("deploy", {})
+        api_token = (deploy_cfg.get("target_tenant_api_token")
+                     or os.environ.get("TARGET_TENANT_API_TOKEN") or None)
         return TenantConfig(
             url=(deploy_cfg.get("target_tenant_url")
                  or os.environ.get("TARGET_TENANT_URL", "")),
             token=(deploy_cfg.get("target_tenant_token")
                    or os.environ.get("TARGET_TENANT_TOKEN", "")),
+            api_token=api_token,
         )
 
     # -- GitHub --

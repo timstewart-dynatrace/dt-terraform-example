@@ -73,9 +73,11 @@ def main() -> int:
     cfg = PipelineConfig.load(args.config)
 
     # Resolve target tenant
+    cfg_target = cfg.get_target_tenant()
     target = TenantConfig(
-        url=args.target_url or cfg.get_target_tenant().url,
-        token=args.target_token or cfg.get_target_tenant().token,
+        url=args.target_url or cfg_target.url,
+        token=args.target_token or cfg_target.token,
+        api_token=getattr(args, "target_api_token", None) or cfg_target.api_token,
     )
     if not target.url or not target.token:
         logger.error(
