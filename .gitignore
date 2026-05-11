@@ -18,6 +18,12 @@ config/cloned-*/
 *.tfstate.backup
 .terraform.lock.hcl
 
+# Test artifacts
+.coverage
+coverage.xml
+.pytest_cache/
+htmlcov/
+
 # Python
 __pycache__/
 *.py[cod]

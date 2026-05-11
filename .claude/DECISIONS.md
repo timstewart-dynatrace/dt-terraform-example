@@ -36,6 +36,22 @@ Use the format below. Log decisions **at the time** they're made, not retroactiv
 
 ---
 
+## 2026-05-11 — pytest + `responses` for the Test Suite
+
+**Chosen:** Use pytest (with parametrize) for unit tests and the `responses` library for HTTP-level mocking. Tests live in `tests/`; configuration in `pyproject.toml`; pytest invoked via `python -m pytest`. CI runs on Python 3.9, 3.11, 3.12.
+
+**Alternatives:**
+- `unittest` from the standard library — no extra deps, but verbose for parametrized cases and lacks pytest's fixture model.
+- `unittest.mock` directly on `requests.Session` — works but produces less-clear failure messages than `responses`; `responses` registers expected URL + method and fails with "no match for `<request>`" rather than a stack trace deep in `requests`.
+
+**Why:** The auth-routing logic in `dt_client.py` benefits from `pytest.mark.parametrize` — one decorator generates ~25 separate test cases for the URL-pattern matching, much cleaner than equivalent unittest. `responses` is the standard choice for testing `requests`-based clients and gives readable failures when a test sends the wrong header. Three Python versions in CI catches forward-compat issues without going to bleeding-edge.
+
+**Trade-offs:** Two extra dev dependencies. Python 3.9 in CI keeps us pinned to features available there (no PEP 695 generics, no match statements in production code — these would break the 3.9 leg).
+
+**Revisit if:** Python 3.9 reaches EOL and we want to bump the floor; or if the test suite grows past the point where `responses` starts feeling heavyweight (consider `pytest-httpx` if we ever switch HTTP libraries).
+
+---
+
 ## 2026-05-11 — Combined Auth (Platform Token + classic API Token, URL-routed)
 
 **Chosen:** Support both Platform Tokens (`dt0s16` / `dt0s01`, sent as `Authorization: Bearer`) and classic Access Tokens (`dt0c01`, sent as `Authorization: Api-Token`) in a single client. Auto-detect the header format by token prefix. Add an optional secondary `*_TENANT_API_TOKEN` slot used only for endpoints in the v1.88.0 Dynatrace-Terraform-provider exclusion list (synthetic monitors, network monitors, AG/API tokens, credentials, custom devices, custom tags, host monitoring mode, key requests, hub extension active version + config, SLO v1/v2).
