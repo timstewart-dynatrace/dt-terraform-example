@@ -25,8 +25,11 @@ This separation enables code review between export and deploy, version history o
 ### Installation
 
 ```bash
-# Install Python dependencies
+# Install Python dependencies (runtime only)
 pip install -r requirements.txt
+
+# For development (includes pytest, pytest-cov, responses)
+pip install -r requirements-dev.txt
 
 # Set up environment variables
 cp config/.env.example .env
