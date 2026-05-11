@@ -85,16 +85,16 @@ Detailed phase management rules: @.claude/rules/core.md
 ## Skills
 
 ### Terraform Provider & HCL Resources
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-terraform/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-terraform/SKILL.md
 
 ### Monaco CLI & Tenant Migration
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-monaco/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-monaco/SKILL.md
 
 ### Dynatrace Platform APIs
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-apis/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-apis/SKILL.md
 
 ### SVG Diagrams & Documentation Graphics
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/svg-graphics/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/svg-graphics/SKILL.md
 
 ## Decision Log
 
