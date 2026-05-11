@@ -1,6 +1,6 @@
 # Phase 04 -- Reference Currency Directive
 
-Status: ACTIVE
+Status: DONE
 
 ## Goal
 
