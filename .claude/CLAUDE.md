@@ -62,8 +62,8 @@ python3 scripts/verify_migration.py
 ## Current Phase
 
 Before starting work, check `.claude/phases/` for the active phase.
-- Completed: `PHASE-01-done.md` (best-practices conformance), `PHASE-02-done.md` (combined auth + dependency refresh)
-- To start new work: Create `PHASE-03-active.md`
+- Completed: `PHASE-01-done.md` (best-practices conformance), `PHASE-02-done.md` (combined auth + dependency refresh), `PHASE-03-done.md` (pytest coverage + CI)
+- To start new work: Create `PHASE-04-active.md`
 - Track: Append decisions to `DECISIONS.md` as you go
 - When done: Rename `active` to `done`, create next phase
 
