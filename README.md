@@ -31,6 +31,12 @@ pip install -r requirements.txt
 # For development (includes pytest, pytest-cov, responses)
 pip install -r requirements-dev.txt
 
+# Run tests
+pytest
+
+# Check citation URL liveness (per .claude/rules/reference-currency.md)
+python3 scripts/validate_citation_urls.py
+
 # Set up environment variables
 cp config/.env.example .env
 nano .env  # Add tenant URLs and API tokens

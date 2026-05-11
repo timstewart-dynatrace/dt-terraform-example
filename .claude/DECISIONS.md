@@ -36,6 +36,23 @@ Use the format below. Log decisions **at the time** they're made, not retroactiv
 
 ---
 
+## 2026-05-11 — Reference Currency Directive Adopted from Best-Practice-Notebooks-Generator
+
+**Chosen:** Adopt the Reference Currency directive pattern from the Best-Practice-Notebooks-Generator project (`workflow.md` § Reference Currency in that project), adapted to this smaller codebase. Two directives: next-touch reference standardization + deep content verification via `scripts/validate_citation_urls.py`.
+
+**Alternatives:**
+- Do nothing — accept that cited URLs will silently rot until someone notices a 404.
+- Just write a URL-liveness check script without a documented rule — half-measure; you have the tool but not the discipline to actually use it on PR review.
+- Copy the Notebooks-Generator's full workflow.md verbatim — overkill for a single-Python-codebase project; that document is sized for 446 notebooks across 34 series.
+
+**Why:** The single most load-bearing citation in this project — the v1.88.0 release-note quote that defines the auth-routing boundary in `dt_client.py` — is the kind of statement that Dynatrace can shift in any future provider release. Without a documented discipline, the boundary list goes stale silently, and our routing produces 401s or silent breakage. The directive makes the maintenance routine rather than ad-hoc. Other Dynatrace-cited URLs (Platform Tokens docs, classic Access Tokens docs, provider releases) have the same drift risk on a slower cadence.
+
+**Trade-offs:** A monthly URL liveness check is a small recurring cost. Manual content-drift spot-checks require human judgment — not automated. The rule is opinionated about format (`[Title (publisher)](URL)` minimal) which someone might find restrictive.
+
+**Revisit if:** This project's citation surface grows substantially (more docs / more code / more vendor surfaces beyond Dynatrace) — the script's scan scope or the directive's cadence might need to scale. Or if Dynatrace publishes a stable reference for the auth-routing boundary that removes the need to track release notes.
+
+---
+
 ## 2026-05-11 — pytest + `responses` for the Test Suite
 
 **Chosen:** Use pytest (with parametrize) for unit tests and the `responses` library for HTTP-level mocking. Tests live in `tests/`; configuration in `pyproject.toml`; pytest invoked via `python -m pytest`. CI runs on Python 3.9, 3.11, 3.12.

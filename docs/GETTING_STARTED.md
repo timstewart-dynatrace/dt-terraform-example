@@ -195,7 +195,7 @@ python3 scripts/migrate.py --config-dir config/backups/20240101_120000
 
 - [Dynatrace Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest)
 - [Dynatrace API Documentation](https://www.dynatrace.com/support/help/dynatrace-api)
-- [Configuration as Code Guide](https://www.dynatrace.com/support/help/how-to-use-dynatrace/configuration-management/configuration-as-code)
+- [Configuration as Code overview (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code)
 
 ## Support
 

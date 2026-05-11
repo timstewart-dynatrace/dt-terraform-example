@@ -77,6 +77,7 @@ Detailed phase management rules: @.claude/rules/core.md
 @.claude/rules/testing.md
 @.claude/rules/deployment.md
 @.claude/rules/python.md
+@.claude/rules/reference-currency.md
 
 ### Debugging & Troubleshooting
 @.claude/rules/debugging.md
