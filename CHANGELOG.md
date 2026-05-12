@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-12
+
 ### Added
 - **Reference Currency directive** at `.claude/rules/reference-currency.md` — documented discipline for keeping cited URLs and quoted statements current. Two directives: (1) **next-touch reference standardization** — when editing any file with cited URLs, use the `[Title (publisher)](URL)` minimal format, cite source pages not docs-assistant summaries, no marketing taglines, no internal-rule links from user-facing docs, wrap direct quotes in italic single quotes; (2) **deep content verification** — URL liveness check via `scripts/validate_citation_urls.py` (monthly + on every PR touching citations + after major Dynatrace provider releases); manual content-drift spot-check for the load-bearing v1.88.0 release-note quote in `dt_client.py`. Adapted from the Best-Practice-Notebooks-Generator project's `workflow.md` § Reference Currency directive — sized for this smaller codebase. Wired into `.claude/CLAUDE.md` Always-active rules.
 - **`scripts/validate_citation_urls.py`** — walks all `.md` files + Python source under `pipelines/`, `tests/`, `scripts/`, extracts every `https://...` URL, filters placeholders (variable substitutions, example domains, all-caps placeholders), concurrent HEAD-checks each unique URL, writes a per-source report to `docs/citation-status.md`. Exit code 0 if no 404s, 1 if any (suitable for CI gating once baseline is clean). Initial baseline: **0 404s, 25 of 26 URLs live, 1 known false-positive** (Lithium-platform `community.dynatrace.com` 403 on HEAD — works in browser; same false-positive as the Notebooks-Generator project).
