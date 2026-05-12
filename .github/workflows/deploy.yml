@@ -103,6 +103,10 @@ jobs:
         env:
           TARGET_TENANT_URL: ${{ secrets.TARGET_TENANT_URL }}
           TARGET_TENANT_TOKEN: ${{ secrets.TARGET_TENANT_TOKEN }}
+          # Optional classic API Token for v1.88.0-excluded resources (synthetic
+          # monitors, network monitors, SLOs, etc. — see README "Getting API
+          # Tokens"). Empty string if the secret isn't configured.
+          TARGET_TENANT_API_TOKEN: ${{ secrets.TARGET_TENANT_API_TOKEN }}
         run: |
           python pipelines/deploy.py \
             --source-dir configs/ \
