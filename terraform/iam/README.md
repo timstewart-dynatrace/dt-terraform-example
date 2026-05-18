@@ -13,7 +13,7 @@ This is a separate concern from the migration pipelines in the parent repo. The 
 | `variables.tf` | `account_uuid`, `environment_id`, `management_zone_id` |
 | `terraform.tfvars.example` | Template for variable values (copy to `terraform.tfvars`) |
 | `groups.tf` | Example: `platform-team`, `dashboard-readers` |
-| `policies.tf` | Example: `monitoring-read-only`, `dashboard-edit`, `production-admin` |
+| `policies.tf` | Examples: `monitoring-read-only` (settings read), `dashboard-edit` (settings-schema-scoped edit, defaults to `builtin:management-zones` placeholder), `production-admin` (settings read/write/delete) |
 | `boundaries.tf` | Example: `production-only` (restricts a policy to one management zone) |
 | `bindings.tf` | Wire groups → policies, with the boundary on `production-admin` |
 
@@ -106,6 +106,22 @@ Replace example values with your own:
 4. **Bindings (`bindings.tf`)** — One `dynatrace_iam_policy_bindings_v2` per (group, scope) pair. **Read the caveat below before editing**.
 
 ## Important caveats
+
+### Permission DSL tokens are validated at apply, not at plan
+
+`terraform validate` checks that `statement_query` is a string with the right HCL shape. It does **not** parse the Dynatrace permission DSL inside the string. The first time Dynatrace sees the query content is during `terraform apply`, and unsupported tokens come back as HTTP 400 with the body stripped by the provider.
+
+Tokens in this scaffold that are **confirmed valid** (verified in the dynatrace-oss provider's integration tests):
+
+- `settings:objects:read`
+- `settings:schemas:read`
+
+Tokens used here that are **inferred** from the `:read` pattern but unverified in the provider's own examples:
+
+- `settings:objects:write`
+- `settings:objects:delete`
+
+If an apply fails on a policy with `HTTP 400`, re-run with `TF_LOG=DEBUG terraform apply 2>&1 | tee apply.log` and search for `HTTP/2.0 400` to see the actual error body. Common fixes: drop unsupported tokens, or correct the token spelling to match Dynatrace's IAM permissions catalog.
 
 ### Bindings re-assign all policies — list every policy that should remain
 
