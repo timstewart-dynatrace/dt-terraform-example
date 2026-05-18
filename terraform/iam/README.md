@@ -1,0 +1,146 @@
+# Dynatrace IAM — Terraform Scaffold
+
+Manage Dynatrace **account-level** IAM with Terraform: user groups, policies, permission boundaries, and bindings.
+
+This is a separate concern from the migration pipelines in the parent repo. The pipelines move **tenant-level** configuration (dashboards, alerting profiles, settings) between environments using tenant tokens. IAM lives at the **account** level, uses different credentials (OAuth client), and targets a different API (`api.dynatrace.com`, not the tenant URL). See [.claude/DECISIONS.md](../../.claude/DECISIONS.md) entry for 2026-05-18 for the rationale.
+
+## What's in here
+
+| File | Purpose |
+|---|---|
+| `versions.tf` | Terraform and provider version constraints (provider pinned `~> 1.96`) |
+| `providers.tf` | Provider block — auth via env vars only |
+| `variables.tf` | `account_uuid`, `environment_id`, `management_zone_id` |
+| `terraform.tfvars.example` | Template for variable values (copy to `terraform.tfvars`) |
+| `groups.tf` | Example: `platform-team`, `dashboard-readers` |
+| `policies.tf` | Example: `monitoring-read-only`, `dashboard-edit`, `production-admin` |
+| `boundaries.tf` | Example: `production-only` (restricts a policy to one management zone) |
+| `bindings.tf` | Wire groups → policies, with the boundary on `production-admin` |
+
+## Auth model: OAuth client (not tenant tokens)
+
+IAM resources in the `dynatrace-oss/dynatrace` provider require **OAuth client credentials** — there is no Platform-Token path. The provider docs state this explicitly per resource (e.g., the [dynatrace_iam_group resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client"*).
+
+### Required environment variables
+
+```bash
+export DT_CLIENT_ID="dt0s02.XXXXXXXX"
+export DT_CLIENT_SECRET="dt0s02.XXXXXXXX.YYYYYYYY"
+export DT_ACCOUNT_ID="abc12345-1234-1234-1234-abcdef012345"
+```
+
+`DT_ACCOUNT_ID` is your account UUID — the same value you'll put in `terraform.tfvars` as `account_uuid`. The Terraform provider reads it from the env var; the resources also accept it as an HCL argument so the bindings know which account scope to target.
+
+### Required OAuth client scopes
+
+Different IAM resources require different scopes. The minimal set for everything in this scaffold:
+
+| Scope | Needed for |
+|---|---|
+| `account-idm-read` | Reading groups (`dynatrace_iam_group`) |
+| `account-idm-write` | Creating/updating/deleting groups |
+| `iam-policies-management` | Managing policies, boundaries, bindings |
+| `account-env-read` | Resolving environment-scoped references |
+
+Verify scope names in the OAuth client creation UI — Dynatrace has occasionally renamed scopes between releases.
+
+### Creating the OAuth client
+
+1. Go to [account.dynatrace.com](https://account.dynatrace.com)
+2. **Identity & access management** → **OAuth clients** → **Create client**
+3. Description: e.g. `terraform-iam-management`
+4. Scopes: select the four scopes from the table above
+5. Copy the **Client ID** and **Client secret** — the secret is shown once
+6. Account UUID: visible in your browser URL on `account.dynatrace.com`
+
+Background reading: [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients).
+
+## Quick start
+
+```bash
+cd terraform/iam/
+
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your real account_uuid, environment_id, and a real management_zone_id
+
+export DT_CLIENT_ID="..."
+export DT_CLIENT_SECRET="..."
+export DT_ACCOUNT_ID="..."     # same UUID as account_uuid in terraform.tfvars
+
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan
+```
+
+If `plan` looks correct, apply:
+
+```bash
+terraform apply
+```
+
+State is local (`terraform.tfstate` in this directory) and gitignored. Move to a remote backend (S3, GCS, Terraform Cloud) before sharing this across operators.
+
+## Customizing for your account
+
+Replace example values with your own:
+
+1. **Groups (`groups.tf`)** — Change group names to match your SSO/IdP claim values if you're federating identity. Add or remove groups as needed.
+
+2. **Policies (`policies.tf`)** — The `statement_query` is the Dynatrace permission DSL. Format:
+
+   ```
+   ALLOW <service>:<resource>:<action>[, ...] [WHERE <conditions>];
+   ```
+
+   For the full catalog of permission strings, see [Manage user permissions: policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies).
+
+3. **Boundaries (`boundaries.tf`)** — A boundary is a `WHERE` clause that gets AND-ed onto a policy at bind time. Common patterns:
+
+   ```
+   environment:management-zone = "<mz-id>"
+   environment:management-zone startsWith "[Prod]"
+   environment:host-tag = "production"
+   ```
+
+4. **Bindings (`bindings.tf`)** — One `dynatrace_iam_policy_bindings_v2` per (group, scope) pair. **Read the caveat below before editing**.
+
+## Important caveats
+
+### Bindings re-assign all policies — list every policy that should remain
+
+Per the [dynatrace_iam_policy_bindings_v2 resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2), this resource *"re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* If you remove a `policy` block from a bindings_v2 resource, that policy is unbound from the group at the next apply. There is also a brief window during apply where the group has zero policies attached — plan apply timing accordingly for production.
+
+### Deprecated arguments (kept out of this scaffold)
+
+The current provider version flags two deprecations relevant here:
+
+- `dynatrace_iam_group.permissions` block — deprecated in favor of `dynatrace_iam_permission` resources and policy bindings. This scaffold uses bindings; do not re-add a `permissions` block to the group resources.
+- `dynatrace_iam_policy.environment` argument — deprecated in favor of `account`-scoped policies. All example policies here use `account = var.account_uuid`.
+
+### Verify against the current provider release before apply
+
+Argument names on IAM resources have shifted between provider releases. This scaffold was written against provider v1.96.0. Before applying after a provider bump:
+
+1. Run `terraform init -upgrade` and note the resolved version
+2. Open the [dynatrace-oss/dynatrace provider releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) and read the notes for every version between the pinned one and the new one
+3. Check the registry docs for each IAM resource you use — argument names, deprecations, new required fields
+4. Re-run `terraform plan` and confirm the diff is what you expect
+
+## Validation commands
+
+```bash
+terraform fmt -check     # exits non-zero if any .tf file is not canonically formatted
+terraform validate       # syntax + schema check, no API calls
+terraform plan           # full diff against current account state (uses OAuth)
+```
+
+## References
+
+- [dynatrace-oss/dynatrace provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest)
+- [dynatrace_iam_group resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group)
+- [dynatrace_iam_policy resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy)
+- [dynatrace_iam_policy_boundary resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_boundary)
+- [dynatrace_iam_policy_bindings_v2 resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2)
+- [Manage user permissions: policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
+- [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)

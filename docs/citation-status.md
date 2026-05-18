@@ -6,8 +6,8 @@
 
 ## Summary
 
-- **Total unique URLs checked:** 26
-- **Live (2xx):** 25
+- **Total unique URLs checked:** 27
+- **Live (2xx):** 26
 - **Redirected (3xx):** 0
 - **404:** 0
 - **Other 4xx / 5xx:** 1
@@ -38,6 +38,7 @@
 | ✓ | `https://prod-source.live.dynatrace.com` | docs/ADVANCED.md |
 | ✓ | `https://prod-target.live.dynatrace.com` | docs/ADVANCED.md |
 | ✓ | `https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest` | .claude/rules/reference-currency.md<br>README.md<br>docs/GETTING_STARTED.md<br>docs/TROUBLESHOOTING.md |
+| ✓ | `https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group` | .claude/DECISIONS.md |
 | ✓ | `https://semver.org/` | .claude/rules/core.md |
 | ✓ | `https://semver.org/spec/v2.0.0.html` | CHANGELOG.md |
 | ✓ | `https://source.live.dynatrace.com` | scripts/migrate.py |

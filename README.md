@@ -131,6 +131,17 @@ Configure these secrets in your repository:
 │   ├── verify_migration.py         # Post-migration verification
 │   └── validate_citation_urls.py   # URL liveness check (Phase 04)
 │
+├── terraform/iam/                  # Account-level IAM as Terraform — separate auth model
+│   ├── README.md                   # OAuth client setup + scope reference
+│   ├── versions.tf                 # Provider pin (dynatrace-oss/dynatrace ~> 1.96)
+│   ├── providers.tf                # Provider block (env-var auth)
+│   ├── variables.tf                # account_uuid, environment_id, management_zone_id
+│   ├── terraform.tfvars.example    # Variable values template
+│   ├── groups.tf                   # IAM groups
+│   ├── policies.tf                 # IAM policies (account-scoped)
+│   ├── boundaries.tf               # Permission boundaries
+│   └── bindings.tf                 # Group → policy bindings (with boundaries)
+│
 ├── config/
 │   ├── .env.example                # Environment variable template
 │   ├── environments.yaml           # Tenant configuration template
@@ -226,6 +237,14 @@ If your primary token is already a classic API Token (`dt0c01`), leave the `_API
 2. Navigate to **Settings** → **Access tokens** (or **Settings** → **Integration** → **Dynatrace API** for the classic flow)
 3. For a **Platform Token**: select the platform scopes you need (`settings:read/write`, `automation:workflows:read/write`, `document:documents:read/write`, etc.)
 4. For a **classic Access Token**: select the scopes you need (`config.read`, `config.write`, `entities.read`, etc.)
+
+## IAM Management (Terraform)
+
+The `terraform/iam/` subdirectory is a separate scaffold for managing **account-level** IAM with Terraform — groups, policies, permission boundaries, and bindings.
+
+It uses a **different auth model** from the migration pipelines above. IAM resources in the `dynatrace-oss/dynatrace` provider require **OAuth client credentials** (`DT_CLIENT_ID` + `DT_CLIENT_SECRET` + `DT_ACCOUNT_ID`) and target the account API at `api.dynatrace.com` — not the tenant API at `<tenant>.live.dynatrace.com` and not Platform Tokens.
+
+See [`terraform/iam/README.md`](terraform/iam/README.md) for OAuth client setup, required scopes, and the example resource layout.
 
 ## References
 
