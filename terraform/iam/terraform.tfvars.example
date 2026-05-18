@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit real values.
+
+account_uuid       = "abc12345-1234-1234-1234-abcdef012345"
+environment_id     = "abc12345"
+management_zone_id = "1234567890123456789"

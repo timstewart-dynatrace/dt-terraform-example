@@ -1,7 +1,7 @@
 {
   "projectName": "Dynatrace Terraform Migration Tools",
   "projectType": "python",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Standalone tools for Dynatrace configuration migration between tenants using Terraform-compatible workflows",
 
   "repository": {

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`terraform/iam/` scaffold** — working example for managing Dynatrace **account-level** IAM with Terraform. Includes 2 example groups (`platform-team`, `dashboard-readers`), 3 example policies (`monitoring-read-only`, `dashboard-edit`, `production-admin`), 1 permission boundary (`production-only`, scoping a policy to a single management zone), and `dynatrace_iam_policy_bindings_v2` resources wiring groups to policies with boundary references. Provider pinned to `dynatrace-oss/dynatrace ~> 1.96` (current line as of v1.96.0, published 2026-05-06). Auth model is **distinct from the migration pipelines** — IAM uses OAuth client credentials (`DT_CLIENT_ID` / `DT_CLIENT_SECRET` / `DT_ACCOUNT_ID`) and targets the account API at `api.dynatrace.com`; the pipelines use tenant tokens against `<tenant>.live.dynatrace.com`. `terraform/iam/README.md` documents OAuth client setup, required scopes per resource type, the deprecated args this scaffold avoids (`dynatrace_iam_group.permissions`, `dynatrace_iam_policy.environment`), and a "verify against the current provider release before apply" check.
+- `.claude/DECISIONS.md` entry — *2026-05-18 — Two auth models coexist (tenant tokens for migration, OAuth client for IAM)* — documents why account-level OAuth and tenant-token auth live in the same repo.
+
+### Changed
+- `.claude/settings.json` version bumped from `0.2.0` to `0.4.0`. The 0.2.0 → 0.3.0 bump documented in this changelog never landed in `settings.json`; this catches the file up and accounts for the new IAM scaffold (MINOR — new feature).
+- Root `.gitignore` no longer excludes `.terraform.lock.hcl` — the lockfile is now committed per HashiCorp's reproducible-provider-install recommendation, applied to `terraform/iam/.terraform.lock.hcl`. `*.tfstate*` and `.terraform/` continue to be excluded.
+
 ## [0.3.0] - 2026-05-12
 
 ### Added

@@ -86,6 +86,23 @@ Use the format below. Log decisions **at the time** they're made, not retroactiv
 
 ---
 
+## 2026-05-18 — Two auth models coexist (tenant tokens for migration, OAuth client for IAM)
+
+**Chosen:** Add `terraform/iam/` scaffold using account-level OAuth client auth (`DT_CLIENT_ID` + `DT_CLIENT_SECRET` + `DT_ACCOUNT_ID`) targeting the account API (`api.dynatrace.com`), while keeping the existing tenant-token auth (Platform Token / classic API Token) for the migration pipelines targeting `<tenant>.live.dynatrace.com`. Two completely separate auth models in one repo; the IAM scaffold owns its own README and credential docs, separate from `config/.env.example`.
+
+**Alternatives:**
+- Unify under one client (extend `pipelines/core/dt_client.py`) — wrong direction. IAM and migration target different APIs, use different credential models, and have different lifecycles. Forcing them into one client would be a leaky abstraction with conditional routing for two different audiences.
+- Put IAM in a separate repo — clean separation but loses the value of "all Dynatrace tooling discoverable in one place." User explicitly chose the subdirectory approach.
+- Use Platform Tokens for IAM — not supported by the provider. The [dynatrace_iam_group resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) explicitly requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client"*. There is no Platform-Token path.
+
+**Why:** IAM is account-level (one account → many environments); migration is tenant-level (per-environment config). The `dynatrace-oss/dynatrace` provider mandates OAuth client credentials for IAM resources with scopes (`account-idm-read/write`, `iam-policies-management`, `account-env-read`) that don't exist on Platform Tokens. The split is enforced by the provider, not by us — fighting it would be wasted work.
+
+**Trade-offs:** Two sets of credentials to manage. README structure now has two distinct credential setup paths (tenant tokens in the root `README.md` "Getting API Tokens" section; OAuth client in `terraform/iam/README.md`). New contributors must understand which subtree uses which auth model. Acceptable cost — the alternative (one client doing both) would be worse for understandability.
+
+**Revisit if:** Dynatrace consolidates auth across the account and tenant APIs (no roadmap signal as of provider v1.96.0). Or if the IAM Terraform surface grows large enough to justify its own repo (currently 8 small `.tf` files plus a README — well within "one subdirectory" scale).
+
+---
+
 ## 2026-04-16 — Flat Script Directory Structure
 
 **Chosen:** All scripts in a single `scripts/` directory

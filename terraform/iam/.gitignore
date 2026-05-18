@@ -1,0 +1,15 @@
+# Terraform state — never commit
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Plan artifacts
+*.tfplan
+
+# Provider working directory (commit .terraform.lock.hcl for reproducibility)
+.terraform/
+
+# Real variable values — terraform.tfvars.example is the template that IS committed
+terraform.tfvars
+*.auto.tfvars
+*.auto.tfvars.json
