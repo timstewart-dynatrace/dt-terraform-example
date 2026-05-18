@@ -19,7 +19,9 @@ This is a separate concern from the migration pipelines in the parent repo. The 
 
 ## Auth model: OAuth client (not tenant tokens)
 
-IAM resources in the `dynatrace-oss/dynatrace` provider require **OAuth client credentials** — there is no Platform-Token path. The provider docs state this explicitly per resource (e.g., the [dynatrace_iam_group resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client"*).
+The IAM Account Management API requires an **OAuth2 bearer token** — raw API tokens (`dt0c01...`) and Platform Tokens (`dt0s16...`) will not work. The Terraform provider exchanges your OAuth client credentials (`DT_CLIENT_ID` + `DT_CLIENT_SECRET`) for a short-lived bearer token automatically on each run; you don't manage bearer tokens yourself, but the OAuth client must carry the right scopes (listed below).
+
+The provider docs state the OAuth-client requirement explicitly per resource — for example, the [dynatrace_iam_group resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client"*.
 
 ### Required environment variables
 
@@ -33,25 +35,25 @@ export DT_ACCOUNT_ID="abc12345-1234-1234-1234-abcdef012345"
 
 ### Required OAuth client scopes
 
-Different IAM resources require different scopes. The minimal set for everything in this scaffold:
+The minimal set for everything in this scaffold:
 
 | Scope | Needed for |
 |---|---|
-| `account-idm-read` | Reading groups (`dynatrace_iam_group`) |
-| `account-idm-write` | Creating/updating/deleting groups |
-| `iam-policies-management` | Managing policies, boundaries, bindings |
-| `account-env-read` | Resolving environment-scoped references |
+| `account-idm-read` | Read groups and users |
+| `account-idm-write` | Create/delete groups |
+| `iam-policies-management` | Create/delete policies, boundaries, and bindings |
+| `account-env-read` | Resolve environment references — required by the provider for `dynatrace_iam_policy`, `dynatrace_iam_policy_boundary`, and `dynatrace_iam_policy_bindings_v2` per the provider docs (*"View environments (`account-env-read`)"*), even when the policies are account-scoped |
 
 Verify scope names in the OAuth client creation UI — Dynatrace has occasionally renamed scopes between releases.
 
 ### Creating the OAuth client
 
-1. Go to [account.dynatrace.com](https://account.dynatrace.com)
-2. **Identity & access management** → **OAuth clients** → **Create client**
+1. Go to **Account Management** ([account.dynatrace.com](https://account.dynatrace.com)) → **Identity & Access Management** → **OAuth clients**
+2. Click **Create client**
 3. Description: e.g. `terraform-iam-management`
-4. Scopes: select the four scopes from the table above
-5. Copy the **Client ID** and **Client secret** — the secret is shown once
-6. Account UUID: visible in your browser URL on `account.dynatrace.com`
+4. Grant the four scopes listed in the table above
+5. Save and copy the **Client ID** and **Client secret** — the secret is shown once and cannot be retrieved later
+6. Note your **Account UUID** from the URL on `account.dynatrace.com` (8-4-4-4-12 hex format)
 
 Background reading: [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients).
 
