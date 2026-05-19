@@ -8,14 +8,16 @@
 # provider's -list-exclusions: "Account management requires OAuth2
 # client and is specific to SaaS"), so they must be named explicitly.
 #
-# Required env vars:
+# Required env vars (export in shell OR set in $REPO_ROOT/.env — the script
+# auto-sources .env at startup if it exists):
 #   DT_CLIENT_ID       OAuth client ID
 #   DT_CLIENT_SECRET   OAuth client secret
 #   DT_ACCOUNT_ID      Account UUID (8-4-4-4-12 hex)
-#   DYNATRACE_ENV_URL  Any valid Dynatrace tenant URL — the export utility
-#                      requires this even for IAM-only runs (provider startup
-#                      quirk; the URL isn't actually used for IAM API calls).
-#                      Falls back to SOURCE_TENANT_URL if that's already set.
+#   DYNATRACE_ENV_URL  Any valid Dynatrace tenant URL — required by the
+#                      export utility at provider startup even for IAM-only
+#                      runs (the URL isn't actually used for IAM API calls).
+#                      Falls back to SOURCE_TENANT_URL or TARGET_TENANT_URL
+#                      from the migration pipeline config.
 #
 # OAuth client scopes needed: account-idm-read, iam-policies-management,
 # account-env-read.
@@ -70,21 +72,37 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-: "${DT_CLIENT_ID:?DT_CLIENT_ID must be set}"
-: "${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set}"
-: "${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set}"
+# Auto-source .env at the repo root if it exists — the project's standard
+# credential location (config/.env.example is its template). `set -a` exports
+# every assignment so the values are visible to child processes (the provider
+# binary). Skipped silently if no .env file.
+if [ -f "$REPO_ROOT/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/.env"
+  set +a
+  echo "Sourced env vars from $REPO_ROOT/.env"
+fi
+
+: "${DT_CLIENT_ID:?DT_CLIENT_ID must be set (export in shell or add to .env)}"
+: "${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set (export in shell or add to .env)}"
+: "${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set (export in shell or add to .env)}"
 
 # The export utility requires DYNATRACE_ENV_URL at provider startup even for
-# IAM-only exports (account-level, no tenant in the API path). Fall back to
-# SOURCE_TENANT_URL (used by the migration pipelines) if it's already set.
+# IAM-only exports (account-level, no tenant in the API path — the URL isn't
+# actually used for IAM API calls). Fall back to SOURCE_TENANT_URL or
+# TARGET_TENANT_URL from the migration pipeline config.
 if [ -z "${DYNATRACE_ENV_URL:-}" ]; then
   if [ -n "${SOURCE_TENANT_URL:-}" ]; then
     export DYNATRACE_ENV_URL="$SOURCE_TENANT_URL"
+    echo "Using SOURCE_TENANT_URL as DYNATRACE_ENV_URL: $DYNATRACE_ENV_URL"
+  elif [ -n "${TARGET_TENANT_URL:-}" ]; then
+    export DYNATRACE_ENV_URL="$TARGET_TENANT_URL"
+    echo "Using TARGET_TENANT_URL as DYNATRACE_ENV_URL: $DYNATRACE_ENV_URL"
   else
-    echo "ERROR: DYNATRACE_ENV_URL is required by the export utility (provider startup quirk)."
-    echo "       Set it to any valid Dynatrace tenant URL, e.g.:"
-    echo "         export DYNATRACE_ENV_URL=\"https://your-tenant.live.dynatrace.com\""
-    echo "       Or set SOURCE_TENANT_URL (from the migration pipeline setup) and re-run."
+    echo "ERROR: no tenant URL found (DYNATRACE_ENV_URL, SOURCE_TENANT_URL, or TARGET_TENANT_URL)."
+    echo "       Set one of them in your shell or in $REPO_ROOT/.env, e.g.:"
+    echo "         SOURCE_TENANT_URL=\"https://your-tenant.live.dynatrace.com\""
     exit 1
   fi
 fi

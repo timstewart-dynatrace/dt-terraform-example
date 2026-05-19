@@ -13,7 +13,8 @@
 # found across all policies — useful when the IAM permission catalog
 # isn't well documented elsewhere.
 #
-# Required env vars:
+# Required env vars (export in shell OR set in $REPO_ROOT/.env — the script
+# auto-sources .env at startup if it exists):
 #   DT_CLIENT_ID      OAuth client ID
 #   DT_CLIENT_SECRET  OAuth client secret
 #   DT_ACCOUNT_ID     Account UUID (8-4-4-4-12 hex)
@@ -50,9 +51,22 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-: "${DT_CLIENT_ID:?DT_CLIENT_ID must be set}"
-: "${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set}"
-: "${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set}"
+# Auto-source .env at the repo root if it exists — the project's standard
+# credential location (config/.env.example is its template). `set -a` exports
+# every assignment so the values are visible to subshells and curl. Skipped
+# silently if no .env file.
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/.env"
+  set +a
+  echo "Sourced env vars from $REPO_ROOT/.env"
+fi
+
+: "${DT_CLIENT_ID:?DT_CLIENT_ID must be set (export in shell or add to .env)}"
+: "${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set (export in shell or add to .env)}"
+: "${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set (export in shell or add to .env)}"
 
 command -v jq >/dev/null || { echo "ERROR: jq is required"; exit 1; }
 command -v curl >/dev/null || { echo "ERROR: curl is required"; exit 1; }

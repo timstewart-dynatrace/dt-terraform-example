@@ -163,6 +163,8 @@ Output files:
 
 Required OAuth scopes: `account-idm-read`, `iam-policies-management`, `account-env-read`.
 
+Credentials may be exported in the shell OR placed in `.env` at the repo root — the script auto-sources `.env` if it exists.
+
 ---
 
 ### iam-export.sh
@@ -184,6 +186,8 @@ Wrapper around the `dynatrace-oss/dynatrace` provider's built-in `-export` utili
 | `-h`, `--help` | Show usage |
 
 Default resources: `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_boundary`, `dynatrace_iam_policy_bindings_v2`.
+
+Credentials and the required `DYNATRACE_ENV_URL` may be exported in the shell OR placed in `.env` at the repo root — the script auto-sources `.env` if it exists. `DYNATRACE_ENV_URL` falls back to `SOURCE_TENANT_URL` then `TARGET_TENANT_URL` from the migration pipeline config.
 
 **The generated `.tf` files do NOT populate Terraform state.** To take over management of a generated resource: copy the block into a working tree, add `versions.tf` + `providers.tf`, then `terraform import <addr> <id>` (source `id` is included as a comment via the `-id` flag). The export is point-in-time — not a sync mechanism.
 
