@@ -59,6 +59,28 @@ python3 scripts/migrate.py --list-types
 python3 scripts/verify_migration.py
 ```
 
+## IAM Subsystem (`terraform/iam/`)
+
+The repo has **two distinct concerns** in two subtrees that **do not share auth, code, or state**:
+
+1. **Migration pipelines** (`pipelines/`, `scripts/migrate.*`) — tenant-level configuration migration. Authenticates with **tenant tokens** (Platform Token `dt0s16` or classic API Token `dt0c01`) against `<tenant>.live.dynatrace.com`. See the rest of this CLAUDE.md.
+
+2. **IAM as code** (`terraform/iam/`) — account-level IAM (groups, policies, permission boundaries, bindings). Authenticates with **OAuth client credentials** (`DT_CLIENT_ID` / `DT_CLIENT_SECRET` / `DT_ACCOUNT_ID`) against `api.dynatrace.com`. **Cannot use tenant tokens** — IAM is account-level and the API rejects them.
+
+### Critical facts for an agent extending IAM work
+
+- **No public permission catalog.** Dynatrace does not publish the IAM permission DSL (`service:resource:action` tokens) at a stable URL. The canonical reference is **existing policies in the operator's account** — dump them with [`scripts/iam-list.sh`](scripts/iam-list.sh) and read the deduplicated token list. Do this before writing any new `statement_query`.
+- **`settings:objects:delete` does not exist.** Verified from a 133-policy dump (0 occurrences). Use `settings:objects:admin` as the umbrella verb for full management. `settings:objects` valid verbs: `:read`, `:write`, `:admin`.
+- **Gen 3 documents are a separate namespace.** Dashboards, notebooks, segments live in `document:documents:*`, not `settings:objects:*`. The DSL does **not** support `WHERE document:type = "dashboard"` style predicates — narrow scope via boundaries on document attributes instead.
+- **Bindings re-assign everything.** `dynatrace_iam_policy_bindings_v2` overwrites all policies on a (group, scope) tuple on every apply. Every policy that should remain bound must be in the config.
+- **`terraform validate` doesn't catch DSL errors.** `statement_query` is just a string to Terraform. Real validation happens server-side at apply time as HTTP 400. The provider strips the response body — re-run with `TF_LOG=DEBUG` to see Dynatrace's actual error message.
+
+### Tooling for IAM work
+
+- [`scripts/iam-list.sh`](scripts/iam-list.sh) — dump existing groups / policies / boundaries to `/tmp/iam-*.json` plus a deduplicated permission-token list (the DSL Rosetta Stone for an account)
+- [`scripts/iam-export.sh`](scripts/iam-export.sh) — wrapper around the provider's `-export` utility, specialized for IAM (excluded by default). Generates HCL for existing account state into `exported-iam/` at the repo root. Output is a discovery starting point, not a sync mechanism.
+- [`terraform/iam/README.md`](terraform/iam/README.md) — operator-facing docs: OAuth client setup, scope reference, scaffold layout, caveats, handoff notes
+
 ## Current Phase
 
 Before starting work, check `.claude/phases/` for the active phase.

@@ -103,6 +103,56 @@ Use the format below. Log decisions **at the time** they're made, not retroactiv
 
 ---
 
+## 2026-05-18 — IAM permission DSL discovered via existing-policies dump (no public catalog)
+
+**Chosen:** Use the account's own existing policies as the authoritative reference for the Dynatrace IAM permission DSL (`service:resource:action` tokens). Built `scripts/iam-list.sh` to automate dumping groups + policies + boundaries via the Account Management API and emit a deduplicated permission-token list. Operators are instructed to run this *before* writing new `statement_query` content.
+
+**Alternatives:**
+- Trust the `dynatrace-oss/dynatrace` provider's docs — the registry pages and `docs/resources/iam_policy.md` only show one canonical example (`ALLOW settings:objects:read, settings:schemas:read WHERE settings:schemaId = "string";`). The provider's integration tests use even less. Not enough to cover a real policy authoring need.
+- Trust Dynatrace's official IAM permission catalog at `docs.dynatrace.com` — multiple WebFetch attempts at the landing page returned navigation hubs that *referenced* a catalog page but didn't contain the actual list. No public URL we could find lists every valid token.
+- Use AWS-IAM-style assumption (`:read`/`:write`/`:delete` exist for every resource) — burned us. `settings:objects:delete` extrapolated this way; HTTP 400 at apply. Tokens are NOT regular.
+
+**Why:** Multiple failed `terraform apply` attempts (HTTP 400 with the provider stripping the body) proved that token names are not derivable from patterns. The single source of truth that always exists is the account itself — every existing policy uses real tokens that Dynatrace accepted. Dumping 133 policies from one account produced a deduplicated list of ~130 unique tokens — that's the operational vocabulary for that account. The discovery script makes this routine rather than ad-hoc curl-and-grep.
+
+**Trade-offs:** Per-account discovery rather than a vendor-published reference. A brand-new account with no policies has no vocabulary to copy from — operators on greenfield accounts have to write a first policy speculatively, see what the API accepts, and iterate. The script doesn't help with that bootstrap problem. Also the dump is point-in-time; if Dynatrace ships new permission tokens in a future release, an operator wouldn't see them until they appear in someone's policy.
+
+**Revisit if:** Dynatrace publishes a stable IAM permission catalog URL we can WebFetch reliably (would let us replace the dump with a doc lookup). Or if the dynatrace-oss provider adds a `terraform-provider-dynatrace -list-iam-permissions`-style flag that prints the catalog from its embedded schema.
+
+---
+
+## 2026-05-18 — `settings:objects:admin` replaces non-existent `:delete` verb
+
+**Chosen:** For `settings:objects`, use only the verbs `:read`, `:write`, and `:admin`. Use `:admin` as the umbrella verb when a policy needs full management (which would conceptually include delete). Do NOT use `:delete` for `settings:objects` — it is not a valid token.
+
+**Alternatives:**
+- List `:read`, `:write`, `:delete` separately (AWS-IAM-style) — produces HTTP 400 at apply. `:delete` is not in the DSL for `settings:objects`.
+- Use just `:read` + `:write` and accept that delete capability isn't separately controllable — works, but loses the "full admin" semantic that a `production-admin`-style policy needs.
+
+**Why:** Dumped 133 policies from a real account via `scripts/iam-list.sh`. Token frequency: `settings:objects:read` (135), `settings:objects:write` (102), `settings:objects:admin` (5), **`settings:objects:delete` (0)**. Zero is the conclusive signal. `:admin` is the canonical umbrella verb covering full management including delete. Other services have different verb sets — `app-engine:apps`, `document:documents`, `state:user-app-states`, and others DO have `:delete` tokens — the pattern is per-service, not universal.
+
+**Trade-offs:** `:admin` is broader than just `:delete` — operators who want write-without-delete (or delete-without-write) granularity don't have that option in the `settings:objects` DSL. Workaround: combine with boundaries to restrict scope of admin power.
+
+**Revisit if:** Dynatrace adds finer-grained verbs to `settings:objects` (the existing precedent of `app-engine:apps:delete` shows fine-grained delete IS a thing for other services). Or if the verb namespace changes in a future provider/API release.
+
+---
+
+## 2026-05-18 — Gen 3 documents are a separate namespace from Settings 2.0
+
+**Chosen:** For Dynatrace Gen 3 documents (dashboards, notebooks, segments), use `document:documents:*` tokens in policy `statement_query` strings — NOT `settings:objects:*` with a `WHERE settings:schemaId = "..."` filter. Do not use `WHERE document:type = "dashboard"` style predicates; they are not valid IAM DSL syntax.
+
+**Alternatives:**
+- Use `settings:objects:*` + `WHERE settings:schemaId = "..."` and try to find a dashboard schemaId — won't work. Gen 3 dashboards are NOT settings objects; they don't have a settings schemaId. They live in a separate document service.
+- Use `document:documents:read/write/delete WHERE document:type = "dashboard"` — original attempt; rejected by the API at apply. The tokens are valid; the WHERE predicate is not.
+- Skip dashboards entirely — defeats the use case.
+
+**Why:** Existing policies in real accounts use `document:documents:read`, `document:documents:write`, `document:documents:delete`, `document:documents:admin` — all valid. None of them combine those tokens with a `WHERE document:type` predicate. The Gen 3 IAM model puts document-attribute filtering at the **boundary** layer (via `dynatrace_iam_policy_boundary` queries), not inline in the policy statement. The `terraform/iam/dashboard_edit` example policy now uses the canonical `ALLOW document:documents:read, document:documents:write, document:documents:delete;` pattern (no WHERE), and operators who want narrower-than-all-documents scope are directed to add a boundary.
+
+**Trade-offs:** A policy granting `document:documents:write` grants on ALL documents (dashboards, notebooks, segments, et al.) — not just dashboards. There is currently no mechanism in the DSL to narrow this within the policy itself; the only way to limit scope is via boundary attributes (which are themselves not exhaustively documented and may not support per-document-type predicates either).
+
+**Revisit if:** Dynatrace adds per-type predicates to the IAM DSL, OR introduces sub-namespaces under `document:` (e.g., a hypothetical `document:dashboards:*`). The existing precedent in other services suggests this could happen — `automation` has separate `:automations`, `:calendars`, `:rules`, `:workflows` resources.
+
+---
+
 ## 2026-04-16 — Flat Script Directory Structure
 
 **Chosen:** All scripts in a single `scripts/` directory

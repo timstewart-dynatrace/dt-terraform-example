@@ -138,6 +138,65 @@ Checks: dashboards, alerting profiles, management zones, notifications, auto-tag
 
 ---
 
+### iam-list.sh
+
+Diagnostic for the **account-level IAM subsystem** at [`terraform/iam/`](../terraform/iam/) — NOT for the migration pipelines. Uses different auth (OAuth client, not tenant tokens).
+
+Exchanges OAuth client credentials for a bearer token, then GETs groups, policies, and boundaries from the Account Management API at `api.dynatrace.com`. Writes raw JSON to an output directory and prints a deduplicated list of every `service:resource:action` permission token used across the account's existing policies. **The token list is the canonical IAM DSL vocabulary** — Dynatrace does not publish this catalog publicly, so an account's existing policies are the authoritative reference.
+
+```bash
+# Required env vars: DT_CLIENT_ID, DT_CLIENT_SECRET, DT_ACCOUNT_ID
+./scripts/iam-list.sh                  # writes to /tmp/iam-*.json
+./scripts/iam-list.sh -o ./iam-dump    # custom output directory
+```
+
+| Flag | Description |
+|------|-------------|
+| `-o`, `--output` | Output directory for JSON files (default: `/tmp`) |
+| `-h`, `--help` | Show usage |
+
+Output files:
+- `iam-groups.json` — all groups in the account
+- `iam-policies-list.json` — policy summaries (may not include `statementQuery`)
+- `iam-policies-detail.json` — full details for every policy with `statementQuery`
+- `iam-boundaries.json` — boundary list
+
+Required OAuth scopes: `account-idm-read`, `iam-policies-management`, `account-env-read`.
+
+---
+
+### iam-export.sh
+
+Wrapper around the `dynatrace-oss/dynatrace` provider's built-in `-export` utility, specialized for IAM. IAM resources are excluded from the default export (the provider's `-list-exclusions` documents this as *"Account management requires OAuth2 client and is specific to SaaS"*), so the wrapper names the four standard IAM resource types explicitly. Generates HCL for current account state — useful for bringing UI-created IAM under Terraform management.
+
+```bash
+# Required env vars: DT_CLIENT_ID, DT_CLIENT_SECRET, DT_ACCOUNT_ID
+# Prerequisite: terraform init must have run in terraform/iam/
+./scripts/iam-export.sh                                       # default 4 IAM types
+./scripts/iam-export.sh dynatrace_iam_user                    # add extras
+./scripts/iam-export.sh -o /tmp/iam-out                       # custom output dir
+```
+
+| Flag / arg | Description |
+|------|-------------|
+| `-o`, `--output` | Output directory for `.tf` files (default: `exported-iam/` at repo root) |
+| `extra_resource_type` | Append additional resource type names (e.g. `dynatrace_iam_user`, `dynatrace_iam_permission`) |
+| `-h`, `--help` | Show usage |
+
+Default resources: `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_boundary`, `dynatrace_iam_policy_bindings_v2`.
+
+**The generated `.tf` files do NOT populate Terraform state.** To take over management of a generated resource: copy the block into a working tree, add `versions.tf` + `providers.tf`, then `terraform import <addr> <id>` (source `id` is included as a comment via the `-id` flag). The export is point-in-time — not a sync mechanism.
+
+To see every resource type the provider excludes from default export:
+
+```bash
+cd terraform/iam/
+.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/*/*/terraform-provider-dynatrace_v* \
+  -export -list-exclusions
+```
+
+---
+
 ## Setup Wizard
 
 `setup.sh` lives in the project root (not in `scripts/`). It's an interactive wizard that checks dependencies, collects tenant credentials, verifies API connectivity, and writes a `.env` file.
