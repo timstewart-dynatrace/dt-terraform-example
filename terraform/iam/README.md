@@ -200,6 +200,59 @@ terraform validate       # syntax + schema check, no API calls
 terraform plan           # full diff against current account state (uses OAuth)
 ```
 
+## Handoff notes (for an agent picking this up cold)
+
+This subsystem was built and stabilized across PRs #17–#21. Here's what you need to know to extend it without re-walking the same wall.
+
+### What's applied
+
+A successful `terraform apply` against a real Dynatrace account left these 8 resources in state:
+
+- 2 groups (`platform-team`, `dashboard-readers`)
+- 1 boundary (`production-only`, scoping to `var.management_zone_id`)
+- 3 policies (`monitoring-read-only`, `dashboard-edit`, `production-admin`)
+- 2 bindings (`platform_team_admin` with the production boundary, `dashboard_readers` without)
+
+State is local (`terraform.tfstate` in this directory, gitignored). Move to a remote backend before another operator joins.
+
+### How DSL token discovery works
+
+Dynatrace does **not** publish a stable IAM permission catalog. The provider's documented examples only cover `settings:objects:read` / `settings:schemas:read`. The Dynatrace docs landing pages reference a catalog but no URL points at one.
+
+**The pattern that works:** dump existing policies from an account and read their `statementQuery` strings. The account's own vocabulary is authoritative. Use [`scripts/iam-list.sh`](../../scripts/iam-list.sh) — it does the OAuth bearer-token exchange, GETs all policies, and prints a deduplicated token list. Treat its output as the DSL reference before writing any new policy.
+
+### Token gotchas already proved by HTTP 400
+
+| Wrong | Right | Why |
+|---|---|---|
+| `settings:objects:delete` | `settings:objects:admin` | `:delete` is not in the DSL for `settings:objects`. `:admin` is the umbrella verb. |
+| `document:documents:write WHERE document:type = "dashboard"` | `document:documents:write` (no WHERE) | The tokens are valid. The `WHERE document:type = "..."` predicate isn't supported. Use a boundary for scope. |
+| `entities:read`, `davis-problems:read` | dump existing policies and find equivalents | Not in the DSL. Real names use service prefixes like `storage:entities:read` or similar. |
+
+See [.claude/DECISIONS.md](../../.claude/DECISIONS.md) entries dated 2026-05-18 for the full reasoning.
+
+### Known open items
+
+1. **`dashboard-edit` is broader than its name.** With `document:documents:read/write/delete` and no WHERE, it grants on all Gen 3 documents (dashboards, notebooks, segments). For narrower scope, write a boundary that filters on document attributes — boundary syntax beyond `environment:management-zone` is not well documented, so confirm against existing boundaries (`scripts/iam-list.sh` dumps these too) before writing one.
+
+2. **`production-admin`'s boundary depends on `var.management_zone_id`.** If the value in `terraform.tfvars` is the placeholder (`REPLACE_WITH_REAL_MZ_ID`), the boundary applies to no MZ and the admin policy effectively has no scope restriction.
+
+3. **CHANGELOG `[Unreleased]` has 5 PRs of accumulated changes.** Following the project's pattern (see [.claude/rules/core.md](../../.claude/rules/core.md)), cut a `chore: release 0.4.0` commit at a natural pause to finalize the section with a date and create the git tag.
+
+4. **No tests.** `terraform fmt -check` and `terraform validate` are the only local checks. A future CI job for `terraform validate` on `terraform/iam/` would prevent broken HCL from landing — currently the pytest matrix doesn't cover this directory.
+
+5. **Existing account IAM not yet imported.** The account has 130+ pre-existing policies that this scaffold doesn't manage. To bring them under Terraform: run `scripts/iam-export.sh` (generates HCL into `exported-iam/`), select the ones worth managing, `terraform import` each, then add to a working tree.
+
+### Suggested next-agent workflow
+
+If asked to extend IAM:
+
+1. Read this README, then `.claude/DECISIONS.md` (2026-05-18 entries), then `policies.tf` for the canonical token examples
+2. Run `scripts/iam-list.sh` against the target account — get the live DSL vocabulary
+3. Write the new policy / boundary / binding in HCL using only tokens that appear in step 2's output
+4. `terraform plan` first; expect HTTP 400 at apply if a guessed token slipped through — re-run with `TF_LOG=DEBUG terraform apply` to see the actual error body
+5. Update this README and `.claude/DECISIONS.md` with anything new you learn
+
 ## References
 
 - [dynatrace-oss/dynatrace provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest)
