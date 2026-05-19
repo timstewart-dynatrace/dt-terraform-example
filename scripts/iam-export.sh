@@ -16,8 +16,16 @@
 #   DYNATRACE_ENV_URL  Any valid Dynatrace tenant URL — required by the
 #                      export utility at provider startup even for IAM-only
 #                      runs (the URL isn't actually used for IAM API calls).
-#                      Falls back to SOURCE_TENANT_URL or TARGET_TENANT_URL
-#                      from the migration pipeline config.
+#                      Fallback chain (highest to lowest):
+#                        1. DYNATRACE_ENV_URL already exported
+#                        2. Derived from `environment_id` in
+#                           terraform/iam/terraform.tfvars as
+#                           https://<environment_id>.live.dynatrace.com
+#                        3. SOURCE_TENANT_URL from migration pipeline config
+#                        4. TARGET_TENANT_URL from migration pipeline config
+#                      (For Gen 3 tenants on .apps.dynatrace.com, set
+#                      DYNATRACE_ENV_URL explicitly — the tfvars derivation
+#                      assumes .live.)
 #
 # OAuth client scopes needed: account-idm-read, iam-policies-management,
 # account-env-read.
@@ -90,19 +98,38 @@ fi
 
 # The export utility requires DYNATRACE_ENV_URL at provider startup even for
 # IAM-only exports (account-level, no tenant in the API path — the URL isn't
-# actually used for IAM API calls). Fall back to SOURCE_TENANT_URL or
-# TARGET_TENANT_URL from the migration pipeline config.
+# actually used for IAM API calls). Fallback chain, in priority order:
+#   1. DYNATRACE_ENV_URL already exported
+#   2. Derived from `environment_id` in terraform/iam/terraform.tfvars
+#      (the canonical source for the IAM Terraform config)
+#   3. SOURCE_TENANT_URL or TARGET_TENANT_URL from the migration pipeline
+#      config
 if [ -z "${DYNATRACE_ENV_URL:-}" ]; then
-  if [ -n "${SOURCE_TENANT_URL:-}" ]; then
+  TFVARS="$REPO_ROOT/terraform/iam/terraform.tfvars"
+  TFVARS_ENV_ID=""
+  if [ -f "$TFVARS" ]; then
+    # Match: environment_id = "yhu28601"  (with optional whitespace).
+    # Extract the quoted value.
+    TFVARS_ENV_ID=$(sed -nE 's/^[[:space:]]*environment_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$TFVARS" | head -1)
+  fi
+
+  if [ -n "$TFVARS_ENV_ID" ]; then
+    export DYNATRACE_ENV_URL="https://${TFVARS_ENV_ID}.live.dynatrace.com"
+    echo "Derived DYNATRACE_ENV_URL from terraform/iam/terraform.tfvars: $DYNATRACE_ENV_URL"
+  elif [ -n "${SOURCE_TENANT_URL:-}" ]; then
     export DYNATRACE_ENV_URL="$SOURCE_TENANT_URL"
     echo "Using SOURCE_TENANT_URL as DYNATRACE_ENV_URL: $DYNATRACE_ENV_URL"
   elif [ -n "${TARGET_TENANT_URL:-}" ]; then
     export DYNATRACE_ENV_URL="$TARGET_TENANT_URL"
     echo "Using TARGET_TENANT_URL as DYNATRACE_ENV_URL: $DYNATRACE_ENV_URL"
   else
-    echo "ERROR: no tenant URL found (DYNATRACE_ENV_URL, SOURCE_TENANT_URL, or TARGET_TENANT_URL)."
-    echo "       Set one of them in your shell or in $REPO_ROOT/.env, e.g.:"
-    echo "         SOURCE_TENANT_URL=\"https://your-tenant.live.dynatrace.com\""
+    echo "ERROR: no tenant URL found."
+    echo "       Tried (in order):"
+    echo "         1. \$DYNATRACE_ENV_URL"
+    echo "         2. environment_id in $TFVARS"
+    echo "         3. \$SOURCE_TENANT_URL"
+    echo "         4. \$TARGET_TENANT_URL"
+    echo "       Set one of them, or export DYNATRACE_ENV_URL directly."
     exit 1
   fi
 fi
