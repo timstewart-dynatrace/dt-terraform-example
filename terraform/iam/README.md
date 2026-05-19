@@ -113,17 +113,25 @@ Replace example values with your own:
 
 `terraform validate` checks that `statement_query` is a string with the right HCL shape. It does **not** parse the Dynatrace permission DSL inside the string. The first time Dynatrace sees the query content is during `terraform apply`, and unsupported tokens come back as HTTP 400 with the body stripped by the provider.
 
-Tokens in this scaffold that are **confirmed valid** (verified in the dynatrace-oss provider's integration tests):
+Token verb conventions verified by inspecting real policies in a Dynatrace account (see "Discovering valid permission tokens" below):
 
-- `settings:objects:read`
-- `settings:schemas:read`
+- **`settings:objects`** — valid verbs: `:read`, `:write`, `:admin`. **No `:delete`** — `:admin` is the umbrella verb covering full management including delete.
+- **`document:documents`** — valid verbs: `:read`, `:write`, `:delete`, `:admin`. Documents in Gen 3 (dashboards, notebooks, segments) are a separate namespace from Settings 2.0.
+- **Multiple statements** — combine `ALLOW` and `DENY` separated by `;` in a single `statement_query`.
+- **WHERE clauses** — support `=`, `IN (...)`, boolean combinations on `settings:schemaId`, `settings:schemaGroup`, `settings:scope`, etc. They do **not** support arbitrary predicates like `document:type = "dashboard"` (Gen 3 document filtering happens at boundary level instead).
 
-Tokens used here that are **inferred** from the `:read` pattern but unverified in the provider's own examples:
+If an apply still fails on a policy with `HTTP 400`, re-run with `TF_LOG=DEBUG terraform apply 2>&1 | tee apply.log` and search for `HTTP/2.0 400` to see the actual error body.
 
-- `settings:objects:write`
-- `settings:objects:delete`
+### Discovering valid permission tokens
 
-If an apply fails on a policy with `HTTP 400`, re-run with `TF_LOG=DEBUG terraform apply 2>&1 | tee apply.log` and search for `HTTP/2.0 400` to see the actual error body. Common fixes: drop unsupported tokens, or correct the token spelling to match Dynatrace's IAM permissions catalog.
+Dynatrace doesn't publish an exhaustive IAM permission catalog at a stable URL — the canonical reference is the set of policies already in your account. Use the diagnostic script bundled with this repo:
+
+```bash
+scripts/iam-list.sh                  # writes JSON to /tmp/iam-*.json
+scripts/iam-list.sh -o ./out         # custom output directory
+```
+
+The script exchanges your OAuth client credentials for a bearer token, fetches groups + policies + boundaries via the Account Management API, and prints a deduplicated list of every `service:resource:action` token used across all your existing policies. That list is your account's canonical IAM DSL vocabulary — copy verb conventions from it before writing new policies.
 
 ### Bindings re-assign all policies — list every policy that should remain
 
