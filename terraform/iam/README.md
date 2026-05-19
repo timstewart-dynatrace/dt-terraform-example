@@ -133,6 +133,45 @@ scripts/iam-list.sh -o ./out         # custom output directory
 
 The script exchanges your OAuth client credentials for a bearer token, fetches groups + policies + boundaries via the Account Management API, and prints a deduplicated list of every `service:resource:action` token used across all your existing policies. That list is your account's canonical IAM DSL vocabulary — copy verb conventions from it before writing new policies.
 
+## Bulk export existing IAM resources as HCL
+
+To bring existing IAM resources (groups, policies, boundaries, bindings) under Terraform management, use the `dynatrace-oss/dynatrace` provider's built-in export utility via the bundled wrapper:
+
+```bash
+scripts/iam-export.sh
+```
+
+This:
+
+1. Locates the `terraform-provider-dynatrace` binary inside `terraform/iam/.terraform/providers/...` (so `terraform init` must have been run first)
+2. Runs the export utility against the four standard IAM resource types (`dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_boundary`, `dynatrace_iam_policy_bindings_v2`)
+3. Writes generated HCL files to `exported-iam/` at the repo root (override with `-o`)
+
+IAM is excluded from the default export — per the provider's own `-list-exclusions` output, *"Account management requires OAuth2 client and is specific to SaaS"* — so the script names the resources explicitly. To include other types:
+
+```bash
+scripts/iam-export.sh dynatrace_iam_user dynatrace_iam_service_user dynatrace_iam_permission
+```
+
+To inspect everything the provider considers excluded:
+
+```bash
+# From terraform/iam/ after `terraform init`
+.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/*/*/terraform-provider-dynatrace_v* \
+  -export -list-exclusions
+```
+
+### What the exported output is and isn't
+
+The generated `.tf` files are a **starting point**, not a drop-in replacement for the existing scaffold:
+
+- They describe your current account state at export time — copy them into a working tree and add `versions.tf` + `providers.tf` before running `terraform plan`
+- They do **not** populate Terraform state — every exported resource is foreign to your local state. To take over management, `terraform import <address> <id>` each one you want managed
+- The `-id` flag (which `iam-export.sh` enables) writes the source `id` as an HCL comment in each resource block to make `import` commands easier to script
+- If you want state population in the same step, swap the `-flat -id` flags for `-import-state` in the script (read the provider's export docs first — `-import-state` is opinionated about target module structure)
+
+The export is also a **point-in-time** snapshot — running it twice produces fresh files, not incremental diffs. Treat it as a discovery tool, not a sync mechanism.
+
 ### Bindings re-assign all policies — list every policy that should remain
 
 Per the [dynatrace_iam_policy_bindings_v2 resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2), this resource *"re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* If you remove a `policy` block from a bindings_v2 resource, that policy is unbound from the group at the next apply. There is also a brief window during apply where the group has zero policies attached — plan apply timing accordingly for production.
