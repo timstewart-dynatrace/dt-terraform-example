@@ -9,9 +9,13 @@
 # client and is specific to SaaS"), so they must be named explicitly.
 #
 # Required env vars:
-#   DT_CLIENT_ID      OAuth client ID
-#   DT_CLIENT_SECRET  OAuth client secret
-#   DT_ACCOUNT_ID     Account UUID (8-4-4-4-12 hex)
+#   DT_CLIENT_ID       OAuth client ID
+#   DT_CLIENT_SECRET   OAuth client secret
+#   DT_ACCOUNT_ID      Account UUID (8-4-4-4-12 hex)
+#   DYNATRACE_ENV_URL  Any valid Dynatrace tenant URL — the export utility
+#                      requires this even for IAM-only runs (provider startup
+#                      quirk; the URL isn't actually used for IAM API calls).
+#                      Falls back to SOURCE_TENANT_URL if that's already set.
 #
 # OAuth client scopes needed: account-idm-read, iam-policies-management,
 # account-env-read.
@@ -70,6 +74,21 @@ done
 : "${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set}"
 : "${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set}"
 
+# The export utility requires DYNATRACE_ENV_URL at provider startup even for
+# IAM-only exports (account-level, no tenant in the API path). Fall back to
+# SOURCE_TENANT_URL (used by the migration pipelines) if it's already set.
+if [ -z "${DYNATRACE_ENV_URL:-}" ]; then
+  if [ -n "${SOURCE_TENANT_URL:-}" ]; then
+    export DYNATRACE_ENV_URL="$SOURCE_TENANT_URL"
+  else
+    echo "ERROR: DYNATRACE_ENV_URL is required by the export utility (provider startup quirk)."
+    echo "       Set it to any valid Dynatrace tenant URL, e.g.:"
+    echo "         export DYNATRACE_ENV_URL=\"https://your-tenant.live.dynatrace.com\""
+    echo "       Or set SOURCE_TENANT_URL (from the migration pipeline setup) and re-run."
+    exit 1
+  fi
+fi
+
 # Locate the provider binary. `terraform init` puts it under
 # .terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/<version>/<os_arch>/.
 PROVIDER_DIR="$REPO_ROOT/terraform/iam/.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace"
@@ -86,7 +105,13 @@ if [ -z "$BINARY" ]; then
   exit 1
 fi
 
-RESOURCES=("${DEFAULT_RESOURCES[@]}" "${EXTRA_RESOURCES[@]}")
+RESOURCES=("${DEFAULT_RESOURCES[@]}")
+# bash 3.2 (macOS default) treats empty array expansion as "unbound variable"
+# under `set -u`, even when the array was explicitly declared. Only append
+# extras when there's at least one.
+if [ ${#EXTRA_RESOURCES[@]} -gt 0 ]; then
+  RESOURCES+=("${EXTRA_RESOURCES[@]}")
+fi
 
 mkdir -p "$OUT_DIR"
 
